@@ -212,6 +212,7 @@ out/
 *.tsbuildinfo
 .DS_Store
 .vercel/
+.dev/
 !frontend/src/lib/
 
 # Ruff stuff:
