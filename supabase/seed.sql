@@ -1,0 +1,1 @@
+-- Add local development seed data here after defining the application schema.

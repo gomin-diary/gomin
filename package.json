@@ -1,0 +1,17 @@
+{
+  "name": "gomin-local",
+  "private": true,
+  "scripts": {
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "db:migration:new": "supabase migration new",
+    "db:migrate": "supabase migration up --local"
+  },
+  "devDependencies": {
+    "supabase": "2.118.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
