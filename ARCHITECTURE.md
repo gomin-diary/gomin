@@ -39,7 +39,7 @@ flowchart TB
     U -->|HTTPS · 페이지 요청| FE
     U -->|HTTPS · JSON API| API
     FE -->|HTTPS · 서버 렌더링에 필요한 API 호출| API
-    API -->|TLS · SQL| DB
+    API -->|HTTPS · Supabase Data API · 서버 키 인증| DB
     API -->|HTTPS · 파일 저장 및 접근 URL 발급| ST
     API -->|HTTPS REST · 캐시 조회 및 갱신| CACHE
     U -->|HTTPS · 만료 시간이 있는 다운로드 URL| ST
@@ -63,10 +63,10 @@ Vercel의 Next.js 배포 지원 범위는 [공식 가이드](https://vercel.com/
 ### 4.2 Python / Uvicorn / Render
 
 - 요청 인증, 자원별 권한 검사, 입력 검증, 업무 규칙을 처리한다.
-- PostgreSQL 트랜잭션, 캐시 갱신, Storage 접근을 조정한다.
+- Supabase Data API 호출, 캐시 갱신, Storage 접근을 조정한다. 여러 변경을 하나의 트랜잭션으로 처리해야 하면 DB 함수와 RPC를 사용한다.
 - API 계층 → 서비스 계층 → 데이터 접근 계층으로 책임을 나눈다.
 - 인스턴스 로컬 메모리나 로컬 파일에 사용자 세션 및 영구 데이터를 의존시키지 않는다.
-- DB와 HTTP 클라이언트 연결을 재사용하고, 비동기 경로에서 장시간 블로킹 작업을 피한다.
+- Supabase SDK의 HTTP 클라이언트 연결을 재사용하고, 비동기 경로에서 장시간 블로킹 작업을 피한다.
 
 ### 4.3 Supabase PostgreSQL
 
@@ -75,7 +75,7 @@ Vercel의 Next.js 배포 지원 범위는 [공식 가이드](https://vercel.com/
 - 파일 자체 대신 버킷, 오브젝트 경로, 소유자, 크기, 콘텐츠 유형, 상태를 저장한다.
 - 스키마 변경은 버전 관리하는 마이그레이션으로 수행한다.
 
-Render에서의 DB 접속은 네트워크 지원과 연결 수를 확인해 직접 연결 또는 Supavisor 세션 풀러를 선택한다. 트랜잭션 풀러를 선택하면 드라이버와 prepared statement 호환성을 별도로 확인한다. 애플리케이션 연결 풀 크기 × 워커 수 × 인스턴스 수에 운영 여유를 더한 값이 연결 한도를 넘지 않도록 한다. [Supabase 연결 가이드](https://supabase.com/docs/guides/database/connecting-to-postgres)
+개발에서는 Supabase CLI의 로컬 API URL과 서버 키, 배포에서는 Supabase Cloud의 프로젝트 URL과 서버 키를 사용한다. 백엔드는 Python SDK로 Data API를 호출하며 DB 비밀번호를 사용하지 않는다. 서버 전용 Secret 키는 RLS를 우회하므로 업무 API에서 사용자 권한을 검사해야 한다. Data API에 사용할 테이블과 함수에는 필요한 권한을 명시적으로 부여한다. [Supabase API 키 가이드](https://supabase.com/docs/guides/getting-started/api-keys)
 
 ### 4.4 Supabase Storage
 

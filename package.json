@@ -2,6 +2,10 @@
   "name": "gomin-local",
   "private": true,
   "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "dev:frontend": "bash scripts/restart.sh frontend",
+    "dev:backend": "bash scripts/restart.sh backend",
+    "dev:all": "bash scripts/restart.sh all",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
