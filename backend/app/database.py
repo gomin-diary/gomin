@@ -1,22 +1,23 @@
-from collections.abc import AsyncIterator
-
 from fastapi import Request
-from psycopg import AsyncConnection
-from psycopg_pool import AsyncConnectionPool
+from httpx import AsyncClient as AsyncHttpClient
+from supabase import AsyncClient, AsyncClientOptions, acreate_client
+
+from app.config import Settings
 
 
-def create_pool(database_url: str) -> AsyncConnectionPool:
-    return AsyncConnectionPool(
-        conninfo=database_url,
-        open=False,
-        min_size=1,
-        max_size=5,
-        timeout=5,
-        kwargs={"connect_timeout": 5, "options": "-c statement_timeout=5000"},
-        check=AsyncConnectionPool.check_connection,
+async def create_supabase_client(
+    settings: Settings, http_client: AsyncHttpClient
+) -> AsyncClient:
+    return await acreate_client(
+        str(settings.supabase_url).rstrip("/"),
+        settings.supabase_secret_key.get_secret_value(),
+        options=AsyncClientOptions(
+            auto_refresh_token=False,
+            persist_session=False,
+            httpx_client=http_client,
+        ),
     )
 
 
-async def get_connection(request: Request) -> AsyncIterator[AsyncConnection]:
-    async with request.app.state.db_pool.connection() as connection:
-        yield connection
+def get_supabase(request: Request) -> AsyncClient:
+    return request.app.state.supabase

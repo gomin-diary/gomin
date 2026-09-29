@@ -1,26 +1,23 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from psycopg import Error as DatabaseError
-from psycopg_pool import PoolTimeout
+from httpx import AsyncClient as AsyncHttpClient, HTTPError, Timeout
+from postgrest.exceptions import APIError
+from supabase import AsyncClient
 
 from app.config import get_settings
-from app.database import create_pool
+from app.database import create_supabase_client, get_supabase
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    pool = create_pool(settings.database_url.get_secret_value())
-    app.state.db_pool = pool
-    try:
-        await pool.open(wait=True, timeout=10)
+    async with AsyncHttpClient(timeout=Timeout(10, connect=5)) as http_client:
+        app.state.supabase = await create_supabase_client(settings, http_client)
         yield
-    finally:
-        await pool.close()
 
 
 app = FastAPI(title="Gomin API", version="0.1.0", lifespan=lifespan)
@@ -39,10 +36,13 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/api/v1/health/db")
-async def database_health(request: Request) -> dict[str, str]:
+async def database_health(
+    supabase: AsyncClient = Depends(get_supabase),
+) -> dict[str, str]:
     try:
-        async with request.app.state.db_pool.connection() as connection:
-            await connection.execute("SELECT 1")
-    except (DatabaseError, PoolTimeout) as exc:
-        raise HTTPException(status_code=503, detail="Database unavailable") from exc
+        result = await supabase.rpc("health_check").execute()
+    except (APIError, HTTPError) as exc:
+        raise HTTPException(status_code=503, detail="Supabase unavailable") from exc
+    if result.data is not True:
+        raise HTTPException(status_code=503, detail="Supabase unavailable")
     return {"status": "ok", "database": "connected"}
