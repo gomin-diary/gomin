@@ -30,7 +30,7 @@ PYTHON_BIN=/path/to/python3 ./scripts/setup.cmd
 
 새로 설치할 때는 셸 설정 파일에 nvm 로드 구문을 추가합니다. zsh는 `.zshrc`, Bash는 기존 `.bash_profile` 또는 `.bashrc`를 사용합니다. `PROFILE` 환경변수로 직접 지정할 수도 있습니다. Node 버전은 `.nvmrc`를 읽어 설치하고 nvm의 기본 버전으로 설정합니다. 공식 설치 동작은 [nvm 문서](https://github.com/nvm-sh/nvm#installing-and-updating)를 참고하세요.
 
-설치 완료 후 새 터미널을 열고 저장소 루트에서 `npm run dev`를 실행합니다. 셸 설정이 적용되지 않았다면 [문제 해결](../development/troubleshooting.md)을 확인하세요.
+설치 완료 후 새 터미널을 열고 저장소 루트에서 `npm run dev`를 실행합니다. 셸 설정이 적용되지 않았다면 [로컬 개발환경 설치·실행 문제 해결](../setup-runtime-troubleshooting.md)을 확인하세요.
 
 ## 공통 파일의 실행 권한
 

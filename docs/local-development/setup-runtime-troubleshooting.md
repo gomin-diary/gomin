@@ -1,4 +1,4 @@
-# 설치·실행 문제 해결
+# 로컬 개발환경 설치·실행 문제 해결
 
 | 증상 | 확인 및 조치 |
 | --- | --- |
@@ -42,6 +42,6 @@ nvm use
 npm run dev
 ```
 
-사용자 지정 `NVM_DIR`이나 Homebrew nvm을 사용한다면 실제 설치 경로를 지정하세요. 자세한 설치 위치는 [macOS/Linux 설치 안내](../setup/macos-linux.md)를 참고하세요.
+사용자 지정 `NVM_DIR`이나 Homebrew nvm을 사용한다면 실제 설치 경로를 지정하세요. 자세한 설치 위치는 [macOS/Linux 설치 안내](setup/macos-linux.md)를 참고하세요.
 
 [문서 목록](../README.md)

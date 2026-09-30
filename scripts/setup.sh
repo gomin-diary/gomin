@@ -16,7 +16,7 @@ cd "$PROJECT_ROOT"
 
 # Check an existing manager before switching Node or replacing dependencies.
 if [[ -f .dev/manager.guard ]]; then
-  printf '실행기 잠금 작업이 진행 중입니다. docs/development/troubleshooting.md를 확인하세요.\n' >&2
+  printf '실행기 잠금 작업이 진행 중입니다. docs/local-development/setup-runtime-troubleshooting.md를 확인하세요.\n' >&2
   exit 1
 fi
 if [[ -f .dev/manager.lock ]]; then
@@ -76,7 +76,7 @@ node scripts/dev.mjs --check-idle
 
 if [[ "$SETUP_TARGET" != frontend ]]; then
   if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
-    printf 'Docker가 필요합니다. Docker를 설치·실행한 뒤 다시 시도하세요. 안내: docs/setup/macos-linux.md\n' >&2
+    printf 'Docker가 필요합니다. Docker를 설치·실행한 뒤 다시 시도하세요. 안내: docs/local-development/setup/macos-linux.md\n' >&2
     exit 1
   fi
   SETUP_PYTHON=''
@@ -103,7 +103,7 @@ if [[ "$SETUP_TARGET" != frontend ]]; then
     fi
   fi
   if [[ -z "$SETUP_PYTHON" ]] || ! "$SETUP_PYTHON" -c 'import sys; sys.exit(sys.version_info[:2] < (3, 12))' 2>/dev/null; then
-    printf 'Python 3.12 이상이 필요합니다. 안내: docs/setup/macos-linux.md\n' >&2
+    printf 'Python 3.12 이상이 필요합니다. 안내: docs/local-development/setup/macos-linux.md\n' >&2
     printf 'PYTHON_BIN으로 경로를 지정할 수 있습니다. 기존 backend/.venv의 Python이 3.12 미만이면 해당 폴더를 옮긴 뒤 다시 실행하세요.\n' >&2
     exit 1
   fi

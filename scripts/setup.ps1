@@ -12,7 +12,7 @@ try {
   $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
   Set-Location $ProjectRoot
   # The bootstrap must also work when the existing Node version is too old.
-  if (Test-Path '.dev/manager.guard') { throw '실행기 잠금 작업이 진행 중입니다. docs/development/troubleshooting.md' }
+  if (Test-Path '.dev/manager.guard') { throw '실행기 잠금 작업이 진행 중입니다. docs/local-development/setup-runtime-troubleshooting.md' }
   if (Test-Path '.dev/manager.lock') {
     $ManagerProcessId = 0
     $ManagerPidText = (Get-Content '.dev/manager.lock' -Raw).Trim()
@@ -33,7 +33,7 @@ try {
   }
   if (-not $IsAdmin) { $StartOptions.Verb = 'RunAs' }
   $NodeSetupProcess = Start-Process @StartOptions
-  if ($NodeSetupProcess.ExitCode -ne 0) { throw 'nvm·Node.js 준비에 실패했습니다. docs/setup/windows.md를 확인한 뒤 다시 실행하세요.' }
+  if ($NodeSetupProcess.ExitCode -ne 0) { throw 'nvm·Node.js 준비에 실패했습니다. docs/local-development/setup/windows.md를 확인한 뒤 다시 실행하세요.' }
   foreach ($Name in @('NVM_HOME', 'NVM_SYMLINK')) {
     $Value = [Environment]::GetEnvironmentVariable($Name, 'User')
     if (-not $Value) { $Value = [Environment]::GetEnvironmentVariable($Name, 'Machine') }
@@ -44,7 +44,7 @@ try {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   if ($Target -ne 'frontend') {
-    if (-not (Get-Command docker.exe -ErrorAction SilentlyContinue)) { throw 'Docker Desktop을 설치·실행하세요. docs/setup/windows.md' }
+    if (-not (Get-Command docker.exe -ErrorAction SilentlyContinue)) { throw 'Docker Desktop을 설치·실행하세요. docs/local-development/setup/windows.md' }
     & docker.exe info *> $null
     if ($LASTEXITCODE -ne 0) { throw 'Docker에 연결할 수 없습니다. Docker Desktop의 Linux 컨테이너 엔진을 실행하세요.' }
     $VenvPython = Join-Path $ProjectRoot 'backend/.venv/Scripts/python.exe'
@@ -62,7 +62,7 @@ try {
         if ($LASTEXITCODE -eq 0) { $PythonCommand = $CandidateCommand; $PythonArgs = $CandidateArgs; break }
       } catch {}
     }
-    if (-not $PythonCommand) { throw 'Python 3.12 이상이 필요합니다. 기존 backend/.venv도 확인하세요. docs/setup/windows.md' }
+    if (-not $PythonCommand) { throw 'Python 3.12 이상이 필요합니다. 기존 backend/.venv도 확인하세요. docs/local-development/setup/windows.md' }
   }
 
   Write-Host '프로젝트 의존성을 설치합니다.'

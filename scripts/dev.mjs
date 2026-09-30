@@ -289,7 +289,7 @@ async function acquireManagerLock() {
       await sleep(100);
     }
   }
-  if (!guard) throw new Error('실행기 잠금을 확인할 수 없습니다. docs/development/troubleshooting.md의 manager.guard 안내를 확인하세요.');
+  if (!guard) throw new Error('실행기 잠금을 확인할 수 없습니다. docs/local-development/setup-runtime-troubleshooting.md의 manager.guard 안내를 확인하세요.');
   try {
     await guard.writeFile(`${process.pid}\n`);
     const pid = Number((await readFile(lockPath, 'utf8').catch(() => '0')).trim());
@@ -308,7 +308,7 @@ async function main() {
   if (target === '--check-idle') {
     const pid = Number((await readFile(lockPath, 'utf8').catch(() => '0')).trim());
     if (isAlive(pid)) throw new Error('개발 실행기가 켜져 있습니다. 기존 개발 터미널에서 Ctrl+C로 종료한 뒤 설치를 다시 실행하세요.');
-    if (await exists(guardPath)) throw new Error('실행기 잠금 작업이 진행 중입니다. 잠시 후 다시 시도하세요. docs/development/troubleshooting.md');
+    if (await exists(guardPath)) throw new Error('실행기 잠금 작업이 진행 중입니다. 잠시 후 다시 시도하세요. docs/local-development/setup-runtime-troubleshooting.md');
     return 0;
   }
   if (!targets.includes(target) || process.argv.length > 3) throw new Error('사용법: node scripts/dev.mjs [frontend|backend|all]');

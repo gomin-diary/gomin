@@ -3,14 +3,14 @@ param([Parameter(Mandatory = $true)][string]$CallerSid)
 $ErrorActionPreference = 'Stop'
 try {
   if ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -ne $CallerSid) {
-    throw '다른 관리자 계정으로 설치할 수 없습니다. nvm-windows는 사용자별 설치입니다. 현재 사용자에게 관리자 권한을 부여한 뒤 다시 실행하세요. docs/setup/windows.md'
+    throw '다른 관리자 계정으로 설치할 수 없습니다. nvm-windows는 사용자별 설치입니다. 현재 사용자에게 관리자 권한을 부여한 뒤 다시 실행하세요. docs/local-development/setup/windows.md'
   }
   $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
   $RequestedVersion = (Get-Content (Join-Path $ProjectRoot '.nvmrc') -Raw).Trim()
   if ($RequestedVersion -notmatch '^\d+(\.\d+){0,2}$') { throw '.nvmrc must contain a numeric Node.js version.' }
   if (-not (Get-Command nvm.exe -ErrorAction SilentlyContinue)) {
     if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-      throw 'WinGet이 필요합니다. Microsoft Store에서 앱 설치 관리자(App Installer)를 설치한 뒤 다시 실행하세요. docs/setup/windows.md'
+      throw 'WinGet이 필요합니다. Microsoft Store에서 앱 설치 관리자(App Installer)를 설치한 뒤 다시 실행하세요. docs/local-development/setup/windows.md'
     }
     Write-Host 'nvm-windows를 설치합니다.'
     & winget.exe install --id CoreyButler.NVMforWindows --exact --source winget --accept-package-agreements --accept-source-agreements

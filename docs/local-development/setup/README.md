@@ -48,4 +48,4 @@ npm run dev
 
 `./scripts/setup.cmd --help`로 사용법을 확인할 수 있습니다. 설치 중 오류가 발생하면 원인을 해결하고 같은 명령을 다시 실행하세요.
 
-[문서 목록](../README.md)
+[문서 목록](../../README.md)

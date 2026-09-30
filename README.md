@@ -1,10 +1,8 @@
 # Gomin
 
-Next.js 프론트엔드와 FastAPI 백엔드 프로젝트입니다. 로컬 데이터베이스는 Supabase로 실행합니다.
-
 ## 설치
 
-[설치 안내](docs/setup/README.md)의 준비 사항을 확인한 뒤, 저장소 루트에서 실행합니다. **Windows PowerShell, macOS/Linux 터미널 모두 같은 명령을 사용합니다.**
+[설치 안내](docs/local-development/setup/README.md)의 준비 사항을 확인한 뒤, 저장소 루트에서 실행합니다. **Windows PowerShell, macOS/Linux 터미널 모두 같은 명령을 사용합니다.**
 
 ```sh
 ./scripts/setup.cmd
@@ -32,4 +30,4 @@ npm run dev:all
 
 Supabase까지 중지하려면 `npm run supabase:stop`을 실행합니다.
 
-상세 안내: [Windows 설치](docs/setup/windows.md) · [macOS/Linux 설치](docs/setup/macos-linux.md) · [폴더 구성](docs/development/structure.md) · [전체 문서](docs/README.md)
+상세 안내: [실행·재시작·종료](docs/local-development/runtime.md) · [서버 개별 실행](docs/local-development/manual-run.md)
