@@ -2,15 +2,16 @@
   "name": "gomin-local",
   "private": true,
   "scripts": {
-    "dev": "bash scripts/dev.sh",
-    "dev:frontend": "bash scripts/restart.sh frontend",
-    "dev:backend": "bash scripts/restart.sh backend",
-    "dev:all": "bash scripts/restart.sh all",
+    "dev": "node scripts/dev.mjs",
+    "dev:frontend": "node scripts/dev.mjs frontend",
+    "dev:backend": "node scripts/dev.mjs backend",
+    "dev:all": "node scripts/dev.mjs all",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "db:migration:new": "supabase migration new",
-    "db:migrate": "supabase migration up --local"
+    "db:migrate": "supabase migration up --local",
+    "test": "node --test scripts/tests/*.test.mjs"
   },
   "devDependencies": {
     "supabase": "2.118.0"
