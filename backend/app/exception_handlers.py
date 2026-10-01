@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse, Response
 
 from app.errors import AppError, HTTP_ERRORS
 from app.schemas.response import ApiError, ApiFailure, ErrorDetail
-from app.validation import safe_validation_path
+from app.validation_error_paths import safe_validation_path
 
 logger = logging.getLogger(__name__)
 

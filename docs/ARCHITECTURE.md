@@ -40,7 +40,7 @@ backend/
     schemas/response.py         공통 응답·오류 및 상태 데이터 모델
     errors.py                   공개 가능한 업무 오류와 HTTP 오류 정의
     exception_handlers.py       오류 응답 변환과 OpenAPI 오류 모델
-    validation.py               입력 검증 오류 경로의 동적 키 숨김
+    validation_error_paths.py               입력 검증 오류 경로의 동적 키 숨김
   tests/                        API 응답 계약 검증
   requirements.txt              Python 의존성과 버전
 supabase/
