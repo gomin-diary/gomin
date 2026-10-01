@@ -40,7 +40,7 @@ backend/
     schemas/response.py         공통 응답·오류 및 상태 데이터 모델
     errors.py                   공개 가능한 업무 오류와 HTTP 오류 정의
     exception_handlers.py       오류 응답 변환과 OpenAPI 오류 모델
-    validation_error_paths.py               입력 검증 오류 경로의 동적 키 숨김
+    validation_error_paths.py   입력 검증 오류 경로의 동적 키 숨김
   tests/                        API 응답 계약 검증
   requirements.txt              Python 의존성과 버전
 supabase/
@@ -75,7 +75,7 @@ flowchart LR
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
 ```
 
-홈 화면은 페이지와 메뉴를 표시하며 API를 자동으로 호출하지 않는다. 프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고, 응답은 캐시하지 않는다.
+프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고, 응답은 캐시하지 않는다.
 
 JSON API는 `{ success, data, error }` 공통 응답 구조를 사용한다. 성공 시 `data`와 `error: null`, 실패 시 `data: null`과 오류 코드·문구·필드별 오류를 반환한다. HTTP 상태 코드는 유지한다. 프론트의 `apiFetch<T>()`는 공통 구조를 검사하고 성공 데이터를 반환하며, 실패는 `ApiRequestError`로 전달한다. 상세 규격과 적용 방법은 [공통 API 응답 모델](engineering/api-response.md)을 따른다.
 
