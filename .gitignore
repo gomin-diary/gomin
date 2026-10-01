@@ -231,3 +231,6 @@ __marimo__/
 
 # Other
 /figma
+
+# Project-local Git worktrees
+/.worktrees/
