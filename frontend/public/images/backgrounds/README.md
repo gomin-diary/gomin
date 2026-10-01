@@ -1,4 +1,4 @@
-# 고민일기 모바일 배경
+# 고민일기 배경 자산
 
 로그인·홈 배경을 각각 **1440 × 3120px (6:13)**로 제공한다. `figma/`의 최신 `login-mobile.png`, `home-mobile.png`가 기준 원본이다. 문구가 없는 배경 이미지이므로 제목과 안내 문구는 UI 텍스트로 별도 배치한다.
 
@@ -40,3 +40,9 @@
 제공받은 852 × 1846px 원본을 1440 × 3120px로 확대하고 비율 차이를 최소한으로 정규화했다. 네 파일 모두 디코딩 후 크기와 포맷을 확인했다. 재변환: `python figma/scripts/export-mobile-backgrounds.py` (Pillow의 WebP/AVIF 지원 필요).
 
 변환 결과는 `figma/public/images/backgrounds/`에 생성된다. 웹에 반영할 때는 필요한 AVIF/WebP 파일을 `frontend/public/images/backgrounds/`에 복사한다.
+
+## 공용 화면 추가 자산
+
+PC `home-desktop`, `login-desktop`, `collection-desktop`, `talk-desktop`과 모바일 `talk-mobile`을 AVIF/WebP로 제공한다. PC는 2560×1440, 모바일은 1440×3120이며 Figma의 해당 배경 컴포넌트를 1×로 내보낸 PNG에서 변환했다. 로그인 PC 자산은 가이드·회원가입에서도 공유한다.
+
+[페이지별 매핑과 표시 방식](../../../../docs/frontend/shared-ui.md)을 참고한다.

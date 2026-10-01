@@ -69,8 +69,6 @@ flowchart LR
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
 ```
 
-홈 화면은 페이지와 메뉴를 표시하며 API를 자동으로 호출하지 않는다. 프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고, 응답은 캐시하지 않는다.
-
 ### 프론트엔드
 
 Next.js App Router가 페이지와 레이아웃을 구성한다. `UiStoreProvider`는 Zustand 스토어를 생성해 하위 컴포넌트에 제공하고, 컴포넌트는 `useUiStore`로 필요한 상태를 읽거나 변경한다. 데이터베이스 접근은 백엔드에서 처리한다.
