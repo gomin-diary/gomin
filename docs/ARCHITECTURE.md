@@ -36,6 +36,7 @@ backend/
     main.py                     FastAPI 앱, CORS 설정, 상태 확인 API
     config.py                   환경변수 로딩과 검증
     database.py                 Supabase 클라이언트 생성과 주입
+    mail.py                     Google SMTP 메일 발송 모듈
   requirements.txt              Python 의존성과 버전
 supabase/
   config.toml                   로컬 Supabase 설정
@@ -80,6 +81,10 @@ Next.js App Router가 페이지와 레이아웃을 구성한다. `UiStoreProvide
 FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 시작될 때 비동기 HTTP 클라이언트와 Supabase 클라이언트를 생성한다. 요청마다 같은 클라이언트를 재사용하고, 앱이 종료될 때 HTTP 연결을 정리한다.
 
 백엔드 설정은 `config.py`에서 읽고 검증한다. CORS는 `CORS_ORIGINS`에 지정한 출처의 요청을 허용한다.
+
+`mail.py`는 서버 환경변수로 설정한 Google SMTP 계정으로 메일을 발송한다.
+인증번호 발급·검증과 회원가입 API는 포함하지 않는다. 설정과 사용법은
+[Google SMTP 이메일 발송](engineering/email-delivery.md)에서 확인한다.
 
 | API | 역할 |
 | --- | --- |
