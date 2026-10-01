@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { SiteMenu } from "@/components/site-menu";
 import { sharedPages, type PageId } from "@/lib/shared-pages";
 
-export function PageShell({ page, children }: { page: PageId; children: ReactNode }) {
+export function PageShell({ page, children, contentClassName = "" }: { page: PageId; children: ReactNode; contentClassName?: string }) {
   const config = sharedPages[page];
   const style = { "--page-mobile-color": config.mobileColor ?? "#faf7f2" } as CSSProperties;
   return (
@@ -26,7 +26,7 @@ export function PageShell({ page, children }: { page: PageId; children: ReactNod
         </Link>
         {config.navigation !== "none" ? <SiteMenu /> : null}
       </header>
-      <main id="main-content" className="page-content" tabIndex={-1}>{children}</main>
+      <main id="main-content" className={`page-content ${contentClassName}`} tabIndex={-1}>{children}</main>
     </div>
   );
 }

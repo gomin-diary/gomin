@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { PreparationPage } from "@/components/preparation-page";
+import { AuthPage } from "@/components/auth-page";
 import { sharedPages } from "@/lib/shared-pages";
 
 export const metadata: Metadata = { title: `${sharedPages.signup.title} | 고민일기` };
 
 export default function Page() {
-  return <PreparationPage page="signup" />;
+  return <AuthPage mode="signup" />;
 }

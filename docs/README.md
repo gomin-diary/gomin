@@ -4,6 +4,7 @@
 
 - [시스템 아키텍처](ARCHITECTURE.md): 기술 스택, 폴더 구조, 구성 요소와 통신 방식
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
+- [인증 화면 디자인](frontend/auth-ui.md): 로그인·회원가입 화면, 입력 동작과 인증 API 연동 범위
 
 ## 처음 설치할 때
 
