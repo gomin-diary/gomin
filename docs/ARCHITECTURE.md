@@ -30,12 +30,19 @@ frontend/
     components/                 UI 컴포넌트
     providers/                  Zustand 스토어를 공유하는 Provider
     stores/                     UI 상태와 상태 변경 함수
-    lib/api.ts                  공통 백엔드 요청 함수
+    lib/api.ts                  공통 JSON 요청·응답 검사 및 오류 처리
+    lib/api-types.ts            공통 API 응답·오류 타입
 backend/
   app/
     main.py                     FastAPI 앱, CORS 설정, 상태 확인 API
     config.py                   환경변수 로딩과 검증
     database.py                 Supabase 클라이언트 생성과 주입
+    mail.py                     Google SMTP 메일 발송 모듈
+    schemas/response.py         공통 응답·오류 및 상태 데이터 모델
+    errors.py                   공개 가능한 업무 오류와 HTTP 오류 정의
+    exception_handlers.py       오류 응답 변환과 OpenAPI 오류 모델
+    validation_error_paths.py   입력 검증 오류 경로의 동적 키 숨김
+  tests/                        API 응답 계약 및 SMTP 발송 검증
   requirements.txt              Python 의존성과 버전
 supabase/
   config.toml                   로컬 Supabase 설정
@@ -69,6 +76,10 @@ flowchart LR
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
 ```
 
+프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고, 응답은 캐시하지 않는다.
+
+JSON API는 `{ success, data, error }` 공통 응답 구조를 사용한다. 성공 시 `data`와 `error: null`, 실패 시 `data: null`과 오류 코드·문구·필드별 오류를 반환한다. HTTP 상태 코드는 유지한다. 프론트의 `apiFetch<T>()`는 공통 구조를 검사하고 성공 데이터를 반환하며, 실패는 `ApiRequestError`로 전달한다. 상세 규격과 적용 방법은 [공통 API 응답 모델](engineering/api-response.md)을 따른다.
+
 ### 프론트엔드
 
 Next.js App Router가 페이지와 레이아웃을 구성한다. `UiStoreProvider`는 Zustand 스토어를 생성해 하위 컴포넌트에 제공하고, 컴포넌트는 `useUiStore`로 필요한 상태를 읽거나 변경한다. 데이터베이스 접근은 백엔드에서 처리한다.
@@ -79,12 +90,18 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 
 백엔드 설정은 `config.py`에서 읽고 검증한다. CORS는 `CORS_ORIGINS`에 지정한 출처의 요청을 허용한다.
 
+`mail.py`는 서버 환경변수로 설정한 Google SMTP 계정으로 메일을 발송한다.
+인증번호 발급·검증과 회원가입 API는 포함하지 않는다. 설정과 사용법은
+[Google SMTP 이메일 발송](engineering/email-delivery.md)에서 확인한다.
+
 | API | 역할 |
 | --- | --- |
 | `GET /api/v1/health` | API 서버의 응답 확인 |
 | `GET /api/v1/health/db` | Supabase의 `health_check` 함수를 호출해 DB 연결 확인 |
 
 DB 상태 확인 중 호출이 실패하거나 함수가 `true`를 반환하지 않으면 HTTP 503으로 응답한다. 로그인과 사용자별 권한 검사는 이 상태 확인 API에 포함되지 않는다.
+
+상태 API는 Pydantic의 `ApiSuccess[T]` 모델로 응답하며, 입력 검증·HTTP 예외·내부 오류는 공통 `ApiFailure` 모델로 변환한다. 내부 예외 문구와 입력 원문을 응답으로 노출하지 않는다. CORS 내부 오류 경계가 예상하지 못한 500 오류에도 허용 Origin 헤더를 적용한다. 성공 모델과 공통 오류 모델은 OpenAPI에 반영한다.
 
 ### 데이터베이스
 

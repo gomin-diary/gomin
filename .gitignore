@@ -234,3 +234,6 @@ __marimo__/
 
 # Local design drafts shared through Confluence
 /docs/superpowers/plans/
+
+# Project-local Git worktrees
+/.worktrees/
