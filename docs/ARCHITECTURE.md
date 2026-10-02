@@ -37,12 +37,12 @@ backend/
     main.py                     FastAPI 앱, CORS 설정, 상태 확인 API
     config.py                   환경변수 로딩과 검증
     database.py                 Supabase 클라이언트 생성과 주입
-    mail.py                     Google SMTP 메일 발송 모듈
+    mail.py                     Resend HTTPS 메일 발송 모듈
     schemas/response.py         공통 응답·오류 및 상태 데이터 모델
     errors.py                   공개 가능한 업무 오류와 HTTP 오류 정의
     exception_handlers.py       오류 응답 변환과 OpenAPI 오류 모델
     validation_error_paths.py   입력 검증 오류 경로의 동적 키 숨김
-  tests/                        API 응답 계약 및 SMTP 발송 검증
+  tests/                        API 응답 계약 및 메일 발송 검증
   requirements.txt              Python 의존성과 버전
 supabase/
   config.toml                   로컬 Supabase 설정
@@ -90,9 +90,9 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 
 백엔드 설정은 `config.py`에서 읽고 검증한다. CORS는 `CORS_ORIGINS`에 지정한 출처의 요청을 허용한다.
 
-`mail.py`는 서버 환경변수로 설정한 Google SMTP 계정으로 메일을 발송한다.
+`mail.py`는 서버 환경변수로 설정한 Resend HTTPS API로 메일을 발송한다.
 인증번호 발급·검증과 회원가입 API는 포함하지 않는다. 설정과 사용법은
-[Google SMTP 이메일 발송](engineering/email-delivery.md)에서 확인한다.
+[Resend 이메일 발송](engineering/email-delivery.md)에서 확인한다.
 
 | API | 역할 |
 | --- | --- |

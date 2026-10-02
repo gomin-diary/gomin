@@ -1,129 +1,146 @@
-import smtplib
-import threading
+import json
 import unittest
 from unittest.mock import patch
 
+import httpx
 from pydantic import ValidationError
 
 from app.config import Settings
-from app.mail import MailConfigurationError, MailDeliveryError, SmtpMailer
+from app import mail
 
 
 def settings(**overrides):
-    return Settings(
-        _env_file=None,
-        supabase_url="http://127.0.0.1:54321",
-        supabase_secret_key="test-only",
-        **overrides,
-    )
+    return Settings(_env_file=None, supabase_url='https://example.supabase.co',
+                    supabase_secret_key='test-only', **overrides)
 
 
 class MailTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.config = settings(
-            smtp_username="sender@gmail.com", smtp_password="test-app-password"
-        )
+        self.config = settings(resend_api_key='test-secret', resend_from_email='sender@gomin.today')
+        self.requests = []
 
-    async def test_verification_message_uses_tls_before_authentication(self):
-        with patch("app.mail.smtplib.SMTP") as factory:
-            smtp = factory.return_value.__enter__.return_value
-            smtp.send_message.return_value = {}
-            await SmtpMailer(self.config).send_verification_email(
-                "member@example.com", "123456", expires_minutes=5
-            )
-            factory.assert_called_once_with("smtp.gmail.com", 587, timeout=10)
-            names = [call[0] for call in smtp.method_calls]
-            self.assertLess(names.index("starttls"), names.index("login"))
-            smtp.login.assert_called_once_with("sender@gmail.com", "test-app-password")
-            message = smtp.send_message.call_args.args[0]
-            self.assertEqual(message["To"], "member@example.com")
-            self.assertEqual(message["From"].addresses[0].addr_spec, "sender@gmail.com")
-            self.assertIn("123456", message.get_content())
-            self.assertIn("5분", message.get_content())
+    async def send(self, handler, *, config=None, code='123456', key='verification/request-1'):
+        async def transport(request):
+            self.requests.append(request)
+            return handler(request)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+            return await mail.ResendMailer(config or self.config, client).send_verification_email(
+                'member@example.com', code, idempotency_key=key)
 
-    async def test_ssl_port_and_html_alternative(self):
-        config = self.config.model_copy(update={"smtp_port": 465})
-        with patch("app.mail.smtplib.SMTP_SSL") as factory:
-            smtp = factory.return_value.__enter__.return_value
-            smtp.send_message.return_value = {}
-            await SmtpMailer(config).send_email(
-                "member@example.com", "제목", "본문", html="<p>본문</p>"
-            )
-            self.assertEqual(factory.call_args.args, ("smtp.gmail.com", 465))
-            self.assertIsNotNone(factory.call_args.kwargs["context"])
-            smtp.starttls.assert_not_called()
-            message = smtp.send_message.call_args.args[0]
-            self.assertEqual(message.get_body(preferencelist=("html",)).get_content(), "<p>본문</p>\n")
+    async def test_https_payload_and_acceptance_id(self):
+        result = await self.send(lambda r: httpx.Response(200, json={'id': 'email-1'}))
+        self.assertEqual(result, 'email-1')
+        request = self.requests[0]
+        self.assertEqual(str(request.url), 'https://api.resend.com/emails')
+        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.headers['Authorization'], 'Bearer test-secret')
+        self.assertEqual(request.headers['Idempotency-Key'], 'verification/request-1')
+        self.assertTrue(request.headers['User-Agent'])
+        body = json.loads(request.content)
+        self.assertEqual(body['from'], 'Gomin <sender@gomin.today>')
+        self.assertEqual(body['to'], ['member@example.com'])
+        self.assertIn('123456', body['text'])
+        self.assertIn('3분', body['text'])
 
-    async def test_unconfigured_mail_fails_without_network(self):
-        with patch("app.mail.smtplib.SMTP") as factory:
-            with self.assertRaises(MailConfigurationError):
-                await SmtpMailer(settings()).send_email("member@example.com", "Hi", "Body")
-            factory.assert_not_called()
+    async def test_html_and_stable_retry_key(self):
+        async def transport(request):
+            self.requests.append(request)
+            return httpx.Response(200, json={'id': 'email-1'})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+            sender = mail.ResendMailer(self.config, client)
+            for _ in range(2):
+                await sender.send_email('member@example.com', '제목', '본문', html='<p>본문</p>',
+                                        idempotency_key='same-request')
+        self.assertEqual(self.requests[0].content, self.requests[1].content)
+        self.assertEqual(self.requests[0].headers['Idempotency-Key'], 'same-request')
+        self.assertEqual(self.requests[1].headers['Idempotency-Key'], 'same-request')
+        self.assertEqual(json.loads(self.requests[0].content)['html'], '<p>본문</p>')
 
-    async def test_delivery_errors_do_not_expose_smtp_response(self):
-        for error in (
-            smtplib.SMTPAuthenticationError(535, b"test-app-password"),
-            TimeoutError("test-app-password"),
-        ):
-            with self.subTest(error=type(error).__name__):
-                with patch("app.mail.smtplib.SMTP", side_effect=error):
-                    with self.assertRaises(MailDeliveryError) as caught:
-                        await SmtpMailer(self.config).send_email("member@example.com", "Hi", "Body")
-                    self.assertNotIn("test-app-password", str(caught.exception))
-                    self.assertTrue(caught.exception.__suppress_context__)
+    async def test_confirmed_rejections_are_not_uncertain(self):
+        for status in (400, 401, 403, 422, 429):
+            with self.subTest(status=status):
+                with self.assertRaises(mail.MailDeliveryError) as caught:
+                    await self.send(lambda r: httpx.Response(status, json={'message': 'test-secret'}))
+                self.assertFalse(caught.exception.delivery_uncertain)
+                self.assertEqual(caught.exception.status_code, status)
+                self.assertNotIn('test-secret', str(caught.exception))
 
-    async def test_refused_recipient_is_failure(self):
-        with patch("app.mail.smtplib.SMTP") as factory:
-            smtp = factory.return_value.__enter__.return_value
-            smtp.send_message.return_value = {"member@example.com": (550, b"Rejected")}
-            with self.assertRaises(MailDeliveryError):
-                await SmtpMailer(self.config).send_email("member@example.com", "Hi", "Body")
+    async def test_uncertain_errors_never_automatically_retry(self):
+        for status in (409, 500, 503, 302):
+            with self.subTest(status=status):
+                self.requests.clear()
+                with self.assertRaises(mail.MailDeliveryError) as caught:
+                    await self.send(lambda r: httpx.Response(status, json={'message': 'test-secret'}))
+                self.assertTrue(caught.exception.delivery_uncertain)
+                self.assertEqual(len(self.requests), 1)
 
-    async def test_invalid_headers_fail_before_network(self):
-        for recipient, subject in (
-            ("member@example.com\r\nBcc: other@example.com", "Hi"),
-            ("member@example.com,other@example.com", "Hi"),
-            ("invalid", "Hi"),
-            ("member@example.com", "Hi\nBcc: other@example.com"),
-        ):
-            with self.subTest(recipient=recipient, subject=subject):
-                with patch("app.mail.smtplib.SMTP") as factory:
+    async def test_timeout_is_uncertain_and_sanitized(self):
+        def timeout(request):
+            raise httpx.ReadTimeout('test-secret', request=request)
+        with self.assertRaises(mail.MailDeliveryError) as caught:
+            await self.send(timeout)
+        self.assertTrue(caught.exception.delivery_uncertain)
+        self.assertNotIn('test-secret', str(caught.exception))
+        self.assertTrue(caught.exception.__suppress_context__)
+        self.assertEqual(len(self.requests), 1)
+
+    async def test_connection_failure_is_confirmed_not_sent(self):
+        def unavailable(request):
+            raise httpx.ConnectError('test-secret', request=request)
+        with self.assertRaises(mail.MailDeliveryError) as caught:
+            await self.send(unavailable)
+        self.assertFalse(caught.exception.delivery_uncertain)
+
+    async def test_malformed_acceptance_is_uncertain(self):
+        for body in ({}, {'id': ''}, [], {'id': 1}):
+            with self.subTest(body=body):
+                with self.assertRaises(mail.MailDeliveryError) as caught:
+                    await self.send(lambda r: httpx.Response(200, json=body))
+                self.assertTrue(caught.exception.delivery_uncertain)
+        with self.assertRaises(mail.MailDeliveryError):
+            await self.send(lambda r: httpx.Response(200, text='not json'))
+
+    async def test_missing_or_invalid_configuration_never_sends(self):
+        for config in (settings(), settings(resend_api_key='test-secret'),
+                       settings(resend_api_key='test-secret', resend_from_email='invalid'),
+                       settings(resend_api_key='test-secret', resend_from_email='sender@gomin.today',
+                                resend_from_name='name\nBcc: victim@example.com')):
+            with self.subTest(configured=bool(config.resend_from_email)):
+                with self.assertRaises(mail.MailConfigurationError):
+                    await self.send(lambda r: self.fail('must not send'), config=config)
+        self.assertEqual(self.requests, [])
+
+    async def test_invalid_code_or_key_never_sends(self):
+        for code, key in (('12345', 'key'), ('１２３４５６', 'key'), ('1234567', 'key'),
+                          ('123456', ''), ('123456', 'x' * 257), ('123456', 'key\n')):
+            with self.subTest(code=code, key_length=len(key)):
+                with self.assertRaises(ValueError):
+                    await self.send(lambda r: self.fail('must not send'), code=code, key=key)
+        self.assertEqual(self.requests, [])
+
+    async def test_invalid_recipient_or_subject_never_sends(self):
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: self.fail('must not send'))) as client:
+            sender = mail.ResendMailer(self.config, client)
+            for recipient, subject in (('invalid', 'Hi'), ('a@example.com,b@example.com', 'Hi'),
+                                       ('a@example.com\n', 'Hi'), ('a@example.com', 'Hi\nBcc: b')):
+                with self.subTest(recipient=recipient):
                     with self.assertRaises(ValueError):
-                        await SmtpMailer(self.config).send_email(recipient, subject, "Body")
-                    factory.assert_not_called()
+                        await sender.send_email(recipient, subject, 'body', idempotency_key='key')
 
-    async def test_network_work_runs_outside_event_loop_thread(self):
-        main_thread = threading.get_ident()
-        threads = []
-        with patch("app.mail.smtplib.SMTP") as factory:
-            smtp = factory.return_value.__enter__.return_value
-            def send(message):
-                threads.append(threading.get_ident())
-                return {}
-            smtp.send_message.side_effect = send
-            await SmtpMailer(self.config).send_email("member@example.com", "Hi", "Body")
-        self.assertEqual(len(threads), 1)
-        self.assertNotEqual(threads[0], main_thread)
-
-    def test_environment_settings_and_secret_masking(self):
-        with patch.dict("os.environ", {
-            "SMTP_USERNAME": "env@gmail.com", "SMTP_PASSWORD": "environment-password",
-            "SMTP_PORT": "465", "SMTP_TIMEOUT_SECONDS": "20",
-        }, clear=True):
-            config = settings()
-        self.assertEqual(config.smtp_username, "env@gmail.com")
-        self.assertEqual(config.smtp_password.get_secret_value(), "environment-password")
-        self.assertEqual(config.smtp_port, 465)
-        self.assertEqual(config.smtp_timeout_seconds, 20)
-        self.assertNotIn("environment-password", repr(config))
-
-    def test_unsafe_port_and_timeout_rejected(self):
-        for overrides in ({"smtp_port": 25}, {"smtp_timeout_seconds": 0}):
-            with self.subTest(overrides=overrides):
+    def test_settings_mask_secret_and_reject_unsafe_timeout(self):
+        self.assertNotIn('test-secret', repr(self.config))
+        for value in (0, -1, 61, float('nan'), float('inf')):
+            with self.subTest(value=value):
                 with self.assertRaises(ValidationError):
-                    settings(**overrides)
+                    settings(resend_timeout_seconds=value)
+        with patch.dict('os.environ', {'RESEND_API_KEY': 'test-secret',
+                                      'RESEND_FROM_EMAIL': 'sender@gomin.today'}, clear=True):
+            self.assertEqual(settings().resend_from_email, 'sender@gomin.today')
+
+    def test_dependency_uses_resend(self):
+        with patch('app.mail.get_settings', return_value=self.config):
+            self.assertIsInstance(mail.get_mailer(), mail.ResendMailer)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
