@@ -1,42 +1,19 @@
-# 고민일기 모바일 배경
+# 고민일기 배경 자산
 
-로그인·홈 배경을 각각 **1440 × 3120px (6:13)**로 제공한다. `figma/`의 최신 `login-mobile.png`, `home-mobile.png`가 기준 원본이다. 문구가 없는 배경 이미지이므로 제목과 안내 문구는 UI 텍스트로 별도 배치한다.
+웹에서 사용하는 장식용 배경을 AVIF와 WebP로 함께 제공한다. 원본에 문구를 합성하지 않으며 제목·안내는 별도 UI 텍스트로 배치한다.
 
-| 화면 | AVIF | WebP |
-|---|---|---|
-| 로그인 | `login-mobile.avif` | `login-mobile.webp` |
-| 홈 | `home-mobile.avif` | `home-mobile.webp` |
+| 자산 | 규격 | 원본 |
+| --- | --- | --- |
+| `home-mobile` | 1440×3120 | 기존 로컬 `figma/home-mobile.png` |
+| `login-mobile` | 1440×3120 | Figma `Background / Login / Mobile` (`23:2`) PNG 1× 내보내기 |
+| `home-desktop` | 2560×1440 | Figma `39:48` PNG 1× 내보내기 |
+| `login-desktop` | 2560×1440 | Figma `25:2` PNG 1× 내보내기 |
+| `collection-desktop` | 2560×1440 | Figma `65:114` PNG 1× 내보내기 |
+| `talk-desktop` | 2560×1440 | Figma `85:1433` PNG 1× 내보내기 |
+| `talk-mobile` | 1440×3120 | Figma `85:1434` PNG 1× 내보내기 |
 
-프레임워크의 정적 파일 디렉터리에 이 파일을 넣고 다음처럼 AVIF와 WebP 폴백을 함께 사용할 수 있다.
+로그인 PC 자산은 가이드·회원가입에서도 공유한다. 로그인 모바일 자산은 회원가입에서도 공유하며, 인증 화면 구현에서 현재 Figma의 실내 벽·사진·책상 배경을 다시 내보내 반영했다. 기존 로컬 PNG와 `figma/assets/backgrounds/mobile-assets.json`의 로그인 변환 기록은 이 새 자산의 기준이 아니다.
 
-```html
-<picture>
-  <source srcset="/images/backgrounds/login-mobile.avif" type="image/avif" />
-  <img
-    src="/images/backgrounds/login-mobile.webp"
-    width="1440"
-    height="3120"
-    alt=""
-    decoding="async"
-    fetchpriority="high"
-    class="mobile-background"
-  />
-</picture>
-```
+`PageShell`은 `picture`의 media 조건으로 기기에 맞는 AVIF/WebP를 선택한다. `object-fit: cover`로 비율을 유지하므로 화면 비율에 따라 가장자리 일부가 잘릴 수 있다. 배경은 접근성 트리와 포인터 이벤트에서 제외한다.
 
-```css
-.mobile-background {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 6 / 13;
-}
-```
-
-홈 화면에서는 파일 이름을 `home-mobile`로 바꾼다. 이 방식은 이미지 전체를 유지하며, 가로 390px에서는 세로 845px로 표시된다. 서로 다른 화면 비율에서 `object-fit: cover` 또는 `background-size: cover`를 사용하면 다시 일부 영역이 잘릴 수 있다.
-
-원본 PNG와 변환 도구는 Git에서 제외한 `figma/` 안에 로컬로 유지한다. 출력 크기·원본 체크섬·파일 정보는 `figma/assets/backgrounds/mobile-assets.json`에 기록되어 있으며, 기록 안의 경로는 `figma/` 기준이다.
-
-제공받은 852 × 1846px 원본을 1440 × 3120px로 확대하고 비율 차이를 최소한으로 정규화했다. 네 파일 모두 디코딩 후 크기와 포맷을 확인했다. 재변환: `python figma/scripts/export-mobile-backgrounds.py` (Pillow의 WebP/AVIF 지원 필요).
-
-변환 결과는 `figma/public/images/backgrounds/`에 생성된다. 웹에 반영할 때는 필요한 AVIF/WebP 파일을 `frontend/public/images/backgrounds/`에 복사한다.
+[페이지별 매핑과 표시 방식](../../../../docs/frontend/shared-ui.md)을 참고한다.

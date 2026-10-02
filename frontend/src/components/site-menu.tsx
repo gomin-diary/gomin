@@ -1,19 +1,24 @@
 "use client";
 
-import { useUiStore } from "@/providers/ui-store-provider";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { navigationItems } from "@/lib/shared-pages";
 
 export function SiteMenu() {
-  const isOpen = useUiStore((state) => state.isMenuOpen);
-  const toggleMenu = useUiStore((state) => state.toggleMenu);
+  const pathname = usePathname();
 
   return (
-    <div>
-      <button type="button" aria-expanded={isOpen} aria-controls="site-menu" onClick={toggleMenu}>
-        {isOpen ? "메뉴 닫기" : "메뉴 열기"}
-      </button>
-      <nav id="site-menu" hidden={!isOpen} aria-label="주 메뉴">
-        <a href="/">홈</a>
-      </nav>
-    </div>
+    <nav className="site-menu" aria-label="주 메뉴">
+      {navigationItems.map(({ href, label, icon }) => {
+        const active = href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+        return (
+          <Link key={href} href={href} className="site-menu__link" aria-current={active ? "page" : undefined}>
+            <Image className="site-menu__icon" src={`/images/navigation/${icon}${active ? "-active" : ""}.svg`} width={32} height={32} alt="" />
+            <span>{label}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
