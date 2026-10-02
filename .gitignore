@@ -231,3 +231,6 @@ __marimo__/
 
 # Other
 /figma
+
+# Local design drafts shared through Confluence
+/docs/superpowers/plans/

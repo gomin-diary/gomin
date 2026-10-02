@@ -8,6 +8,7 @@
 - Keep the root [README.md](README.md) limited to installation and running the project: essential commands, local addresses, restart and shutdown instructions, and relevant detail links.
 - Do not add setup completion status, completed or pending work, Jira records, work history, architecture or stack details, deployment or CI/CD status, development rules, or a documentation index to the root README.
 - Put detailed guidance in the appropriate document found through the documentation index; keep it consistent with the implementation.
+- Follow [design document storage](docs/engineering/design-document-storage.md): keep local designs in Git-ignored `docs/superpowers/plans/` and publish them to the Confluence design database with their Jira work item.
 
 ## Secrets
 
