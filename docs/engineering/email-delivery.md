@@ -2,9 +2,7 @@
 
 백엔드의 `app.mail`은 공통 `Mailer` 인터페이스 아래 `SmtpMailer`와
 `ResendMailer` 구현을 제공한다. `get_mailer()`는 `MAIL_PROVIDER` 설정에 맞는
-구현을 반환한다. 기본값은 `resend`다. Render Free 웹 서비스는 SMTP용
-25·465·587번 포트 outbound 연결을 차단하므로 해당 환경에서는 Resend를 사용한다. [Render 제한](https://render.com/docs/free#other-limitations)과
-[Resend API](https://resend.com/docs/api-reference/introduction)를 참고한다.
+구현을 반환한다. 기본값은 `resend`다.
 
 인증번호 생성·저장·만료·검증, 재발송 제한과 회원가입 API는 호출하는 쪽에서
 구현한다. Resend는 메일 전달만 담당하며 인증 제공자는 FastAPI다.
@@ -14,7 +12,7 @@
 `errors.py`와 `address.py`는 공통 오류와 이메일 주소 검증을 담당한다.
 호출자는 `from app.mail import Mailer, get_mailer`로 사용한다.
 
-## 환경변수와 발신 도메인
+## 모듈 설정
 
 `backend/.env.example`의 설정 이름을 사용한다. 실제 키는 서버 환경에만 등록하고
 프론트엔드, 저장소, 로그, Jira에 기록하지 않는다. 프로세스 환경변수가 파일보다
@@ -44,16 +42,9 @@ Google SMTP는 계정의 2단계 인증과 앱 비밀번호를 사용한다.
 [Google 앱 비밀번호 안내](https://support.google.com/mail/answer/185833?hl=ko)를 참고한다.
 SMTP TLS 연결·인증·수신자 거절 처리와 별도 스레드 실행을 유지한다.
 
-Resend 설정 절차는 다음과 같다.
+클라우드의 발신 도메인 검증과 환경변수 등록은
+[배포 문서의 메일 발송 설정](../deployment/README.md#인증-메일-발송-설정)을 따른다.
 
-1. Resend에서 소유한 `gomin.today` 또는 발송용 하위 도메인을 추가한다.
-2. Resend가 제시하는 DNS 레코드를 도메인 DNS 관리 화면에 등록하고 검증 완료를 확인한다. 실제 레코드 값은 Resend 화면을 따른다.
-3. 해당 발신 도메인에 사용할 API 키를 발급하고 발신 주소를 결정한다.
-4. Render 백엔드 Environment에 위 서버 설정을 등록하고 재배포한다.
-5. 통제된 테스트 수신함으로 발송하여 API 접수 ID와 실제 수신을 각각 확인한다.
-
-도메인 등록·키 발급·Render 설정은 코드 반영만으로 완료되지 않는다.
-[Resend 도메인 안내](https://resend.com/docs/dashboard/domains/introduction)를 참고한다.
 메일 설정이 비어 있어도 상태 API는 시작할 수 있지만 메일 발송은
 `MailConfigurationError`로 실패한다. 설정 변경 후 서버를 재시작한다.
 
@@ -138,6 +129,5 @@ cd backend
 테스트는 실제 환경 파일을 읽지 않고 HTTP·SMTP 전송 경계를 대체해 구현 선택,
 SMTP TLS 연결·인증·스레드 실행, Resend 요청 형식,
 메일 내용, 중복 방지 키, 비밀값 마스킹과 실패 분류를 검증한다.
-발신 도메인 검증·Render 설정·실제 메일 수신은 해당 서비스에서 별도로 확인해야 한다.
 
 [문서 목록](../README.md)
