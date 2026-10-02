@@ -162,6 +162,17 @@ class MailTests(unittest.IsolatedAsyncioTestCase):
                                       'RESEND_FROM_EMAIL': 'sender@gomin.today'}, clear=True):
             self.assertEqual(settings().resend_from_email, 'sender@gomin.today')
 
+    def test_dependency_selects_smtp_through_common_interface(self):
+        config = settings(mail_provider='smtp')
+        with patch('app.mail.get_settings', return_value=config):
+            sender = mail.get_mailer()
+        self.assertIsInstance(sender, mail.Mailer)
+        self.assertIsInstance(sender, mail.SmtpMailer)
+
+    def test_unknown_provider_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            settings(mail_provider='unknown')
+
     def test_dependency_uses_resend(self):
         with patch('app.mail.get_settings', return_value=self.config):
             self.assertIsInstance(mail.get_mailer(), mail.ResendMailer)

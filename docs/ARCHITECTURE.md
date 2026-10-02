@@ -37,7 +37,7 @@ backend/
     main.py                     FastAPI 앱, CORS 설정, 상태 확인 API
     config.py                   환경변수 로딩과 검증
     database.py                 Supabase 클라이언트 생성과 주입
-    mail.py                     Resend HTTPS 메일 발송 모듈
+    mail.py                     SMTP·Resend 메일 발송 모듈
     schemas/response.py         공통 응답·오류 및 상태 데이터 모델
     errors.py                   공개 가능한 업무 오류와 HTTP 오류 정의
     exception_handlers.py       오류 응답 변환과 OpenAPI 오류 모델
@@ -90,9 +90,10 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 
 백엔드 설정은 `config.py`에서 읽고 검증한다. CORS는 `CORS_ORIGINS`에 지정한 출처의 요청을 허용한다.
 
-`mail.py`는 서버 환경변수로 설정한 Resend HTTPS API로 메일을 발송한다.
+`mail.py`는 공통 `Mailer` 인터페이스로 SMTP 또는 Resend HTTPS API를 사용한다.
+`MAIL_PROVIDER` 설정으로 구현을 선택하며 기본값은 `resend`다.
 인증번호 발급·검증과 회원가입 API는 포함하지 않는다. 설정과 사용법은
-[Resend 이메일 발송](engineering/email-delivery.md)에서 확인한다.
+[SMTP·Resend 이메일 발송](engineering/email-delivery.md)에서 확인한다.
 
 | API | 역할 |
 | --- | --- |

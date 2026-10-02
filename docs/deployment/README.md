@@ -28,10 +28,12 @@ Render Free 웹 서비스는 SMTP용 25·465·587번 포트의 outbound 연결�
 메일 발송에 Resend HTTPS API를 사용한다. Resend에서 소유한 발신 도메인을
 검증한 뒤 백엔드 Environment에 `RESEND_API_KEY`, `RESEND_FROM_EMAIL`,
 `RESEND_FROM_NAME`, `RESEND_TIMEOUT_SECONDS`를 설정하고 재배포한다.
-실제 API 키는 서버 전용으로 관리한다. 기존 `SMTP_*` 설정은 사용하지 않는다.
+`MAIL_PROVIDER=resend`로 설정한다. 실제 API 키는 서버 전용으로 관리한다.
+SMTP 구현과 기존 `SMTP_*` 설정도 유지하며 SMTP outbound 연결이 가능한 환경에서
+`MAIL_PROVIDER=smtp`로 선택할 수 있다. Render Free에서는 Resend를 사용한다.
 
 설정 항목·DNS 검증·오류 처리·테스트 발송 절차는
-[Resend 이메일 발송](../engineering/email-delivery.md)을 따른다.
+[SMTP·Resend 이메일 발송](../engineering/email-delivery.md)을 따른다.
 상태 API 성공만으로 메일 설정이나 실제 수신이 검증되지는 않는다.
 
 ## 배포 후 확인
