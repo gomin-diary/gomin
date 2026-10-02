@@ -2,7 +2,7 @@ from fastapi import Request
 from httpx import AsyncClient as AsyncHttpClient
 from supabase import AsyncClient, AsyncClientOptions, acreate_client
 
-from app.config import Settings
+from app.core.config import Settings
 
 
 async def create_supabase_client(

@@ -9,6 +9,11 @@
 인증번호 생성·저장·만료·검증, 재발송 제한과 회원가입 API는 호출하는 쪽에서
 구현한다. Resend는 메일 전달만 담당하며 인증 제공자는 FastAPI다.
 
+구현은 `backend/app/mail/`에 둔다. `base.py`는 공통 인터페이스와 인증 메일
+본문, `smtp.py`와 `resend.py`는 각 발송 구현, `dependencies.py`는 제공자 선택,
+`errors.py`와 `address.py`는 공통 오류와 이메일 주소 검증을 담당한다.
+호출자는 `from app.mail import Mailer, get_mailer`로 사용한다.
+
 ## 환경변수와 발신 도메인
 
 `backend/.env.example`의 설정 이름을 사용한다. 실제 키는 서버 환경에만 등록하고

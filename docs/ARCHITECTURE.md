@@ -30,37 +30,25 @@ frontend/
     components/                 UI 컴포넌트
     providers/                  Zustand 스토어를 공유하는 Provider
     stores/                     UI 상태와 상태 변경 함수
-    lib/api.ts                  공통 JSON 요청·응답 검사 및 오류 처리
-    lib/api-types.ts            공통 API 응답·오류 타입
+    lib/                        공통 API 호출, 응답 타입과 오류 처리
 backend/
   app/
-    main.py                     FastAPI 앱, CORS 설정, 상태 확인 API
-    config.py                   환경변수 로딩과 검증
-    database.py                 Supabase 클라이언트 생성과 주입
-    mail.py                     SMTP·Resend 메일 발송 모듈
-    schemas/response.py         공통 응답·오류 및 상태 데이터 모델
-    errors.py                   공개 가능한 업무 오류와 HTTP 오류 정의
-    exception_handlers.py       오류 응답 변환과 OpenAPI 오류 모델
-    validation_error_paths.py   입력 검증 오류 경로의 동적 키 숨김
-  tests/                        API 응답 계약 및 메일 발송 검증
-  requirements.txt              Python 의존성과 버전
+    api/
+      routes/                   기능별 API 라우터와 상태 확인 API
+    core/                       환경변수 설정, 공통 오류와 예외 처리
+    db/                         Supabase 클라이언트 생성과 요청 의존성
+    mail/                       공통 메일 인터페이스와 SMTP·Resend 구현
+    schemas/                    공통 응답·오류 및 API 데이터 모델
+  tests/                        API 응답 계약 및 메일 발송 테스트
 supabase/
-  config.toml                   로컬 Supabase 설정
-  migrations/                   DB 스키마와 SQL 함수 변경 파일
-  seed.sql                      로컬 DB 초기 데이터용 SQL
-scripts/
-  setup.cmd                     공통 설치 진입점
-  setup.sh, setup.ps1            OS별 설치 스크립트
-  setup-node.ps1                Windows Node.js 설치와 버전 설정
-  dev.mjs                       개발 서버 실행·재시작·종료
-  dev.sh, dev.ps1, restart.sh    기존 실행 명령과의 호환 스크립트
+  migrations/                   DB 스키마와 SQL 함수 변경
+scripts/                        OS별 설치와 개발 서버 실행·재시작·종료
   tests/                        설치·실행 스크립트 테스트
-docs/
-  README.md                     문서 인덱스
-  ARCHITECTURE.md                기술 스택, 폴더 구조, 시스템 구성
+docs/                           문서 인덱스와 시스템 아키텍처
+  frontend/                     공용 UI와 인증 화면 안내
   local-development/            로컬 개발환경과 실행 안내
     setup/                      공통 설치와 OS별 준비 사항
-  engineering/                  코딩·커밋·Jira 작업 규칙
+  engineering/                  코딩·커밋·PR·Jira 작업 규칙과 기능 안내
   deployment/                   배포 안내
 ```
 
@@ -86,11 +74,17 @@ Next.js App Router가 페이지와 레이아웃을 구성한다. `UiStoreProvide
 
 ### 백엔드
 
+`app/main.py`는 앱 초기화, CORS·예외 처리 등록과 라우터 연결을 담당한다.
+API 엔드포인트는 `app/api/routes/`에 둔다. 설정과 공통 오류 처리는
+`app/core/`, DB 연결은 `app/db/`, 응답 모델은 `app/schemas/`에서 관리한다.
+
 FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 시작될 때 비동기 HTTP 클라이언트와 Supabase 클라이언트를 생성한다. 요청마다 같은 클라이언트를 재사용하고, 앱이 종료될 때 HTTP 연결을 정리한다.
 
-백엔드 설정은 `config.py`에서 읽고 검증한다. CORS는 `CORS_ORIGINS`에 지정한 출처의 요청을 허용한다.
+백엔드 설정은 `app/core/config.py`에서 읽고 검증한다. CORS는 `CORS_ORIGINS`에 지정한 출처의 요청을 허용한다.
 
-`mail.py`는 공통 `Mailer` 인터페이스로 SMTP 또는 Resend HTTPS API를 사용한다.
+`app/mail/`은 공통 `Mailer` 인터페이스로 SMTP 또는 Resend HTTPS API를 사용한다.
+`base.py`에 인터페이스와 인증 메일 본문을 정의하고, `smtp.py`와 `resend.py`에
+각 제공자의 발송 구현을 둔다. `dependencies.py`의 `get_mailer()`는
 `MAIL_PROVIDER` 설정으로 구현을 선택하며 기본값은 `resend`다.
 인증번호 발급·검증과 회원가입 API는 포함하지 않는다. 설정과 사용법은
 [SMTP·Resend 이메일 발송](engineering/email-delivery.md)에서 확인한다.

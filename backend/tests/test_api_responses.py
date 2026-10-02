@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from httpx import ConnectError
 from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field
 
-from app.config import Settings
+from app.core.config import Settings
 
 # Never load a real environment file or connect to an external service.
 settings = Settings(
@@ -16,9 +16,9 @@ settings = Settings(
     supabase_url="https://example.supabase.co",
     supabase_secret_key="test-only-placeholder",
 )
-with patch("app.config.get_settings", return_value=settings):
+with patch("app.core.config.get_settings", return_value=settings):
     from app.main import app
-from app.database import get_supabase
+from app.db.client import get_supabase
 
 
 class Input(BaseModel):

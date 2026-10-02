@@ -6,7 +6,7 @@ from unittest.mock import patch
 import httpx
 from pydantic import ValidationError
 
-from app.config import Settings
+from app.core.config import Settings
 from app import mail
 
 
@@ -35,7 +35,7 @@ class MailTests(unittest.IsolatedAsyncioTestCase):
             clients.append(client)
             return client
 
-        with patch('app.mail.httpx.AsyncClient', side_effect=create_client):
+        with patch('app.mail.resend.httpx.AsyncClient', side_effect=create_client):
             yield
         for client in clients:
             self.assertTrue(client.is_closed)
@@ -164,7 +164,7 @@ class MailTests(unittest.IsolatedAsyncioTestCase):
 
     def test_dependency_selects_smtp_through_common_interface(self):
         config = settings(mail_provider='smtp')
-        with patch('app.mail.get_settings', return_value=config):
+        with patch('app.mail.dependencies.get_settings', return_value=config):
             sender = mail.get_mailer()
         self.assertIsInstance(sender, mail.Mailer)
         self.assertIsInstance(sender, mail.SmtpMailer)
@@ -174,7 +174,7 @@ class MailTests(unittest.IsolatedAsyncioTestCase):
             settings(mail_provider='unknown')
 
     def test_dependency_uses_resend(self):
-        with patch('app.mail.get_settings', return_value=self.config):
+        with patch('app.mail.dependencies.get_settings', return_value=self.config):
             self.assertIsInstance(mail.get_mailer(), mail.ResendMailer)
 
 
