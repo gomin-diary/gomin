@@ -61,7 +61,7 @@ HTTP 2xx 응답은 성공 모델을 사용하고, HTTP 4xx·5xx 응답은 실패
 | 500 | `INTERNAL_ERROR` | 예상하지 못한 서버 오류 |
 | 503 | `SERVICE_UNAVAILABLE` | DB 등 의존 서비스 이용 불가 |
 
-표에 없는 HTTP 예외는 원래 상태 코드를 유지하며, 4xx는 `HTTP_ERROR`, 5xx는 `INTERNAL_ERROR`로 표현한다. 업무별 오류는 `AppError`로 명시적인 코드를 정의한다. 현재 인증·세션 처리 기능은 포함하지 않는다.
+표에 없는 HTTP 예외는 원래 상태 코드를 유지하며, 4xx는 `HTTP_ERROR`, 5xx는 `INTERNAL_ERROR`로 표현한다. 업무별 오류는 `AppError`로 명시적인 코드를 정의한다. 인증·세션 API의 업무 오류와 쿠키 동작은 [이메일 로그인과 세션](login-auth.md)을 따른다.
 
 입력 검증의 상세 코드는 필수 값 누락에 `REQUIRED`, 파싱·타입 오류와 잘못된 JSON에 `INVALID_FORMAT`, 그 외 검증 실패에 `INVALID_VALUE`를 사용한다. 검증기의 원본 `input`, `ctx`, `msg`를 응답으로 전달하지 않는다. 중첩 `Depends`에 선언한 query·path·header·cookie 필드도 오류 경로에 유지한다. 본문 필드의 `AliasChoices`·`AliasPath`는 검증 오류가 가리키는 선언된 별칭 경로를 유지하며, 그 아래의 동적 딕셔너리 키는 계속 가린다. 원래 필드명을 허용하는 `validate_by_name` 설정과 별칭 대신 필드명을 보고하는 `loc_by_alias=False` 설정도 반영한다. 쿼리 모델 내부의 선언된 필드명을 유지하며, 일반 모델 유니온(`A | B`)의 오류 경로에서는 Pydantic이 추가한 모델명 구분 표시를 제거한다. 배열 인덱스는 유지하고 동적 키와 알 수 없는 경로는 가린다.
 
@@ -120,7 +120,7 @@ try {
 | JSON 파싱 실패·구조 오류·HTTP 상태와 `success` 불일치·빈 204 | `INVALID_RESPONSE`, 실제 HTTP 상태 유지 |
 | 요청 또는 본문 읽기 중 `AbortError` | 원래 취소 예외 유지 |
 
-타입 인자 `T`는 개별 데이터의 런타임 검증을 수행하지 않는다. 공통 래퍼와 오류 상세 구조만 검사하며 API별 데이터 검증이 필요한 곳에서는 별도 검증을 추가한다. 기존 API 주소·단일 `/` 경로 검사·`cache: "no-store"` 동작을 유지한다.
+타입 인자 `T`는 개별 데이터의 런타임 검증을 수행하지 않는다. 공통 래퍼와 오류 상세 구조만 검사하며 API별 데이터 검증이 필요한 곳에서는 별도 검증을 추가한다. 일반 API 주소·단일 `/` 경로 검사·`cache: "no-store"` 동작을 유지한다. `/api/v1/auth/` 경로는 쿠키 전달을 위해 같은 출처의 Next.js 중계 경로와 `credentials: same-origin`을 사용한다.
 
 ## 변경과 검증
 

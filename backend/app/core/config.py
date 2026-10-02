@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     supabase_url: HttpUrl
     supabase_secret_key: SecretStr
     cors_origins: list[str] = ["http://127.0.0.1:3000", "http://localhost:3000"]
+    auth_cookie_secure: bool = True
     mail_provider: Literal["resend", "smtp"] = "resend"
     resend_api_key: SecretStr = SecretStr("")
     resend_from_email: str = ""

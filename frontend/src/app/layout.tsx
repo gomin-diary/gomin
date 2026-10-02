@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { UiStoreProvider } from "@/providers/ui-store-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
-      <body><UiStoreProvider>{children}</UiStoreProvider></body>
+      <body><UiStoreProvider><AuthProvider>{children}</AuthProvider></UiStoreProvider></body>
     </html>
   );
 }

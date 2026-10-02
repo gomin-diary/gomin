@@ -145,7 +145,7 @@ async function restartServers(requested, processes, signal) {
   if (names.includes('backend')) {
     const python = path.join(root, 'backend', '.venv', windows ? 'Scripts/python.exe' : 'bin/python');
     if (!await exists(python)) throw new Error(`백엔드 가상환경이 없습니다. ${setupHint}`);
-    environments.backend = await prepareLocalEnvironment(signal);
+    environments.backend = { ...await prepareLocalEnvironment(signal), AUTH_COOKIE_SECURE: 'false' };
     commands.backend = [python, ['-m', 'uvicorn', 'app.main:app', '--reload', '--host', '127.0.0.1', '--port', '8000']];
   }
   signal.throwIfAborted();

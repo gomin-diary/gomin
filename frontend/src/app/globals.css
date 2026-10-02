@@ -61,3 +61,26 @@ p { margin: 0 0 12px; line-height: 1.8; }
   .page-shell--nav-desktop .site-menu { display: none; }
   .preparation-card { border-radius: 20px; }
 }
+/* Session actions remain available on desktop and mobile, including talk. */
+.session-controls {
+  position: fixed;
+  z-index: 10;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  max-width: calc(100vw - 2rem);
+  padding: .75rem 1rem;
+  border-radius: 1rem;
+  background: #faf7f2;
+  color: #263a30;
+}
+.session-controls button, .auth-status button {
+  font: inherit;
+  padding: .5rem .75rem;
+  cursor: pointer;
+}
+.session-controls button:disabled { cursor: wait; }
+.auth-status { padding: 2rem; text-align: center; }

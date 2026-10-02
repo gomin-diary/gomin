@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { apiFetch, ApiRequestError } from "@/lib/api";
+import { useAuth, type Member } from "@/providers/auth-provider";
 import styles from "./auth-page.module.css";
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -28,16 +31,21 @@ function AuthField({ label, icon, action, type, ...props }: FieldProps) {
   );
 }
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({ mode, initialNotice = "" }: { mode: "login" | "signup"; initialNotice?: string }) {
   const signup = mode === "signup";
   const formRef = useRef<HTMLFormElement>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(initialNotice);
   const [verificationVisible, setVerificationVisible] = useState(false);
   const [confirmationError, setConfirmationError] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const pending = useRef(false);
+  const router = useRouter();
+  const { acceptLogin } = useAuth();
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending.current) return;
     const data = new FormData(event.currentTarget);
     if (signup && data.get("password") !== data.get("confirmation")) {
       setConfirmationError(true);
@@ -45,7 +53,29 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       return;
     }
     setConfirmationError(false);
-    setNotice(signup ? "회원가입 기능을 준비하고 있어요. 입력한 정보는 전송하거나 저장하지 않았어요." : "로그인 기능을 준비하고 있어요. 입력한 정보는 전송하거나 저장하지 않았어요.");
+    if (signup) {
+      setNotice("회원가입 기능을 준비하고 있어요. 입력한 정보는 전송하거나 저장하지 않았어요.");
+      return;
+    }
+    pending.current = true;
+    setSubmitting(true);
+    setNotice("");
+    try {
+      const member = await apiFetch<Member>("/api/v1/auth/login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.get("email"), password: data.get("password") }),
+      });
+      acceptLogin(member);
+      formRef.current?.reset();
+      const destination = new URLSearchParams(window.location.search).get("next");
+      router.replace(destination === "/talk" || destination === "/collection" ? destination : "/");
+    } catch (error) {
+      setNotice(error instanceof ApiRequestError ? error.message : "로그인에 실패했어요. 다시 시도해 주세요.");
+      formRef.current?.querySelector<HTMLInputElement>("[name=password]")?.focus();
+    } finally {
+      pending.current = false;
+      setSubmitting(false);
+    }
   }
 
   function requestVerification() {
@@ -56,7 +86,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <form ref={formRef} className={`${styles.card} ${signup ? styles.signupCard : styles.loginCard}`} onSubmit={submit}>
+    <form ref={formRef} className={`${styles.card} ${signup ? styles.signupCard : styles.loginCard}`} onSubmit={submit} aria-busy={submitting}>
       {signup ? <h2 className={styles.cardTitle}>회원가입</h2> : <h2 className={styles.srOnly}>로그인</h2>}
       <div className={styles.fields}>
         {signup ? <AuthField label="이름" icon="user" name="name" placeholder="이름을 입력해주세요." autoComplete="name" maxLength={50} required pattern=".*\S.*" /> : null}
@@ -76,7 +106,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           <span>이용약관 및 개인정보 처리방침에 동의합니다.</span>
         </label>
       ) : <button className={styles.forgot} type="button" onClick={() => setNotice("비밀번호 찾기 기능을 준비하고 있어요.")}>비밀번호를 잊으셨나요?</button>}
-      <button className={styles.primaryButton} type="submit" disabled={signup && !agreed}>{signup ? "가입하기" : "로그인"}</button>
+      <button className={styles.primaryButton} type="submit" disabled={submitting || (signup && !agreed)}>{signup ? "가입하기" : submitting ? "로그인 중…" : "로그인"}</button>
       {signup ? <div className={styles.rule} /> : (
         <>
           <div className={styles.divider}><span>또는</span></div>

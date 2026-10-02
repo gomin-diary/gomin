@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { SiteMenu } from "@/components/site-menu";
+import { SessionControls } from "@/components/session-controls";
 import { sharedPages, type PageId } from "@/lib/shared-pages";
 
 export function PageShell({ page, children, contentClassName = "" }: { page: PageId; children: ReactNode; contentClassName?: string }) {
@@ -26,7 +27,10 @@ export function PageShell({ page, children, contentClassName = "" }: { page: Pag
         </Link>
         {config.navigation !== "none" ? <SiteMenu /> : null}
       </header>
-      <main id="main-content" className={`page-content ${contentClassName}`} tabIndex={-1}>{children}</main>
+      <main id="main-content" className={`page-content ${contentClassName}`} tabIndex={-1}>
+        {page !== "login" && page !== "signup" ? <SessionControls /> : null}
+        {children}
+      </main>
     </div>
   );
 }

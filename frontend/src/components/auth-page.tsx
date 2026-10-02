@@ -4,7 +4,7 @@ import { AuthForm } from "@/components/auth-form";
 import { PageShell } from "@/components/page-shell";
 import styles from "./auth-page.module.css";
 
-export function AuthPage({ mode }: { mode: "login" | "signup" }) {
+export function AuthPage({ mode, initialNotice }: { mode: "login" | "signup"; initialNotice?: string }) {
   const signup = mode === "signup";
   return (
     <PageShell page={mode} contentClassName={styles.content}>
@@ -17,7 +17,7 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
           </h1>
           <p className={styles.supporting}>{signup ? "당신의 이야기를 천천히 시작해보세요." : <>당신의 이야기가<span className={styles.mobileBreak}><br /></span><span className={styles.desktopSpace}> </span>오늘을 조금 더 편안하게 만들어요.</>}</p>
         </div>
-        <AuthForm mode={mode} />
+        <AuthForm mode={mode} initialNotice={initialNotice} />
         <p className={`${styles.sideCopy} ${styles.sideLeft}`} aria-hidden="true">기록하는 순간,<br />마음이 가벼워져요.</p>
         <p className={`${styles.sideCopy} ${styles.sideRight}`} aria-hidden="true">언제나,<br />네 곁에.</p>
       </section>
