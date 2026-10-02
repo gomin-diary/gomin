@@ -20,5 +20,5 @@
 - Inspect `git status` and relevant diffs before editing. Preserve existing user changes.
 - Verify facts against current code, configuration, and local Git history. Do not treat planned features as implemented or invent missing deployment details.
 - Limit changes to the requested scope and use the relevant existing validation commands.
-- Include Jira issue keys in PR titles and linked Jira issues in PR descriptions; follow [the PR writing guide](docs/engineering/pull-requests.md).
+- Include Jira issue keys in PR titles and descriptions without URLs; follow [the PR writing guide](docs/engineering/pull-requests.md).
 - Before reporting completion, check the diff, changed files, and affected documentation links. State what was verified and what remains unverified.
