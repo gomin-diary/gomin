@@ -1,17 +1,14 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from httpx import AsyncClient as AsyncHttpClient, HTTPError, Timeout
-from postgrest.exceptions import APIError
-from supabase import AsyncClient
+from httpx import AsyncClient as AsyncHttpClient, Timeout
 
-from app.config import get_settings
-from app.database import create_supabase_client, get_supabase
-from app.errors import AppError
-from app.exception_handlers import ERROR_RESPONSES, register_exception_handlers
-from app.schemas.response import ApiSuccess, DatabaseHealthData, HealthData
+from app.api.routes.health import router as health_router
+from app.core.config import get_settings
+from app.core.exception_handlers import ERROR_RESPONSES, register_exception_handlers
+from app.db.client import create_supabase_client
 
 settings = get_settings()
 
@@ -33,20 +30,4 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-
-@app.get("/api/v1/health", response_model=ApiSuccess[HealthData])
-async def health() -> ApiSuccess[HealthData]:
-    return ApiSuccess(data=HealthData())
-
-
-@app.get("/api/v1/health/db", response_model=ApiSuccess[DatabaseHealthData])
-async def database_health(
-    supabase: AsyncClient = Depends(get_supabase),
-) -> ApiSuccess[DatabaseHealthData]:
-    try:
-        result = await supabase.rpc("health_check").execute()
-    except (APIError, HTTPError) as exc:
-        raise AppError(503, "SERVICE_UNAVAILABLE", "서비스를 일시적으로 이용할 수 없습니다.") from exc
-    if result.data is not True:
-        raise AppError(503, "SERVICE_UNAVAILABLE", "서비스를 일시적으로 이용할 수 없습니다.")
-    return ApiSuccess(data=DatabaseHealthData())
+app.include_router(health_router)

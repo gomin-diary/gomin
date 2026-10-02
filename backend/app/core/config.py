@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, HttpUrl, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -7,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).resolve().parents[1] / ".env",
+        env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -15,12 +16,18 @@ class Settings(BaseSettings):
     supabase_url: HttpUrl
     supabase_secret_key: SecretStr
     cors_origins: list[str] = ["http://127.0.0.1:3000", "http://localhost:3000"]
+    mail_provider: Literal["resend", "smtp"] = "resend"
+    resend_api_key: SecretStr = SecretStr("")
+    resend_from_email: str = ""
+    resend_from_name: str = "Gomin"
+    resend_timeout_seconds: float = Field(default=10, gt=0, le=60, allow_inf_nan=False)
+
     smtp_host: str = Field(default="smtp.gmail.com", min_length=1)
     smtp_port: int = 587
     smtp_username: str = ""
     smtp_password: SecretStr = SecretStr("")
     smtp_from_name: str = "Gomin"
-    smtp_timeout_seconds: float = Field(default=10, gt=0, le=60)
+    smtp_timeout_seconds: float = Field(default=10, gt=0, le=60, allow_inf_nan=False)
 
     @field_validator("smtp_port")
     @classmethod

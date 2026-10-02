@@ -70,10 +70,11 @@ HTTP 2xx 응답은 성공 모델을 사용하고, HTTP 4xx·5xx 응답은 실패
 | 파일 | 역할 |
 | --- | --- |
 | [response.py](../../backend/app/schemas/response.py) | `ApiSuccess[T]`, `ApiFailure`, 오류 및 health 데이터 모델 |
-| [errors.py](../../backend/app/errors.py) | `AppError`와 HTTP 오류 코드·기본 문구 |
-| [exception_handlers.py](../../backend/app/exception_handlers.py) | 공통 오류 변환, CORS 내부 오류 경계, OpenAPI 오류 모델 |
-| [validation_error_paths.py](../../backend/app/validation_error_paths.py) | 선언된 필드·인덱스를 유지하고 동적 키를 가리는 검증 오류 경로 처리 |
-| [main.py](../../backend/app/main.py) | 핸들러 등록과 health API 적용 |
+| [errors.py](../../backend/app/core/errors.py) | `AppError`와 HTTP 오류 코드·기본 문구 |
+| [exception_handlers.py](../../backend/app/core/exception_handlers.py) | 공통 오류 변환, CORS 내부 오류 경계, OpenAPI 오류 모델 |
+| [validation_error_paths.py](../../backend/app/core/validation_error_paths.py) | 선언된 필드·인덱스를 유지하고 동적 키를 가리는 검증 오류 경로 처리 |
+| [main.py](../../backend/app/main.py) | 앱 구성과 예외 핸들러·라우터 등록 |
+| [health.py](../../backend/app/api/routes/health.py) | health API와 DB 상태 확인 |
 
 성공 모델은 엔드포인트에서 명시적으로 반환한다. 응답 전체를 자동으로 포장하는 미들웨어는 사용하지 않는다.
 
