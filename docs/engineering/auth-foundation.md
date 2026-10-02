@@ -35,6 +35,7 @@ GOMIN-14의 공통 기반은 회원·세션·이메일 인증·약관 동의 스
 | `backend/app/auth/session.py` | `require_member`, 쿠키 읽기·발급과 저장소 의존성 |
 | `backend/app/api/routes/sessions.py` | 현재 사용자 조회와 현재 기기 로그아웃 |
 | `backend/app/schemas/auth.py` | 공통 회원 응답 `MemberData` |
+| `frontend/src/components/auth-page.tsx` | 기능별 입력 폼을 받는 공통 인증 화면 |
 | `frontend/src/lib/auth-proxy.ts` | 허용한 인증 경로·메서드 중계와 세션 쿠키 전달 |
 
 `GET /api/v1/auth/me`는 유효한 세션의 회원을 반환하고 만료·쿠키를 갱신한다.

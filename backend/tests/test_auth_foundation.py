@@ -52,6 +52,7 @@ class AuthFoundationTests(unittest.TestCase):
         self.app.dependency_overrides[get_auth_repository] = lambda: self.repository
         self.app.dependency_overrides[get_auth_settings] = lambda: self.settings
         self.client = TestClient(self.app, base_url="https://frontend.example.com")
+        self.addCleanup(self.client.close)
 
     def attach(self, token):
         self.client.cookies.set(COOKIE_NAME, token)
