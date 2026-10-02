@@ -237,3 +237,5 @@ __marimo__/
 
 # Project-local Git worktrees
 /.worktrees/
+
+/woktrees/

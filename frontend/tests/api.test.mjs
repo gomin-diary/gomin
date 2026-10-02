@@ -71,3 +71,14 @@ test("rejects paths that could escape the configured API base", async () => {
     await assert.rejects(apiFetch(path), /single slash/);
   }
 });
+
+test("auth requests use same-origin proxy and include cookies", async () => {
+  globalThis.fetch = async (url, init) => {
+    assert.equal(url, "/api/v1/auth/signup");
+    assert.equal(init.credentials, "same-origin");
+    assert.equal(init.cache, "no-store");
+    assert.equal(init.method, "POST");
+    return Response.json({ success: true, data: { id: "member-id" }, error: null }, { status: 201 });
+  };
+  assert.deepEqual(await apiFetch("/api/v1/auth/signup", { method: "POST" }), { id: "member-id" });
+});
