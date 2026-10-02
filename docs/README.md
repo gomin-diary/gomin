@@ -23,6 +23,7 @@
 ## 코드를 변경하고 협업할 때
 
 - [코딩과 검증 규칙](engineering/coding-conventions.md)
+- [Google SMTP 이메일 발송](engineering/email-delivery.md): 서버 환경변수와 발송 모듈 사용법
 - [커밋 메시지 작성 규칙](engineering/commit-messages.md): 타입별 기준과 작성 예시
 - [Jira 이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
 
