@@ -1,5 +1,6 @@
 import json
 import unittest
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import httpx
@@ -19,13 +20,40 @@ class MailTests(unittest.IsolatedAsyncioTestCase):
         self.config = settings(resend_api_key='test-secret', resend_from_email='sender@gomin.today')
         self.requests = []
 
-    async def send(self, handler, *, config=None, code='123456', key='verification/request-1'):
+    @contextmanager
+    def http_transport(self, handler):
+        # Replace only network I/O; exercise the mailer's own client and lifecycle.
+        client_class = httpx.AsyncClient
+        clients = []
+
         async def transport(request):
             self.requests.append(request)
             return handler(request)
-        async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
-            return await mail.ResendMailer(config or self.config, client).send_verification_email(
+
+        def create_client(**kwargs):
+            client = client_class(transport=httpx.MockTransport(transport), **kwargs)
+            clients.append(client)
+            return client
+
+        with patch('app.mail.httpx.AsyncClient', side_effect=create_client):
+            yield
+        for client in clients:
+            self.assertTrue(client.is_closed)
+
+    async def send(self, handler, *, config=None, code='123456', key='verification/request-1'):
+        with self.http_transport(handler):
+            return await mail.ResendMailer(config or self.config).send_verification_email(
                 'member@example.com', code, idempotency_key=key)
+
+    async def test_basic_send_needs_only_recipient_subject_and_body(self):
+        with self.http_transport(lambda request: httpx.Response(200, json={'id': 'email-1'})):
+            sender = mail.ResendMailer(self.config)
+            self.assertEqual(await sender.send_email('member@example.com', '제목', '본문'), 'email-1')
+            await sender.send_verification_email('member@example.com', '123456')
+        keys = [request.headers['Idempotency-Key'] for request in self.requests]
+        self.assertTrue(all(keys))
+        self.assertNotEqual(keys[0], keys[1])
+        self.assertEqual(json.loads(self.requests[0].content)['text'], '본문')
 
     async def test_https_payload_and_acceptance_id(self):
         result = await self.send(lambda r: httpx.Response(200, json={'id': 'email-1'}))
@@ -43,11 +71,8 @@ class MailTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('3분', body['text'])
 
     async def test_html_and_stable_retry_key(self):
-        async def transport(request):
-            self.requests.append(request)
-            return httpx.Response(200, json={'id': 'email-1'})
-        async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
-            sender = mail.ResendMailer(self.config, client)
+        with self.http_transport(lambda request: httpx.Response(200, json={'id': 'email-1'})):
+            sender = mail.ResendMailer(self.config)
             for _ in range(2):
                 await sender.send_email('member@example.com', '제목', '본문', html='<p>본문</p>',
                                         idempotency_key='same-request')
@@ -119,8 +144,8 @@ class MailTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.requests, [])
 
     async def test_invalid_recipient_or_subject_never_sends(self):
-        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: self.fail('must not send'))) as client:
-            sender = mail.ResendMailer(self.config, client)
+        with self.http_transport(lambda r: self.fail('must not send')):
+            sender = mail.ResendMailer(self.config)
             for recipient, subject in (('invalid', 'Hi'), ('a@example.com,b@example.com', 'Hi'),
                                        ('a@example.com\n', 'Hi'), ('a@example.com', 'Hi\nBcc: b')):
                 with self.subTest(recipient=recipient):

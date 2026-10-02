@@ -38,6 +38,11 @@
 from app.mail import get_mailer
 
 mailer = get_mailer()
+
+# 일반 발송은 수신자·제목·본문만 전달하면 된다. 발신 주소는 서버 설정을 사용한다.
+email_id = await mailer.send_email("member@example.com", "메일 제목", "일반 텍스트 본문")
+
+# 동일 발송을 재시도하는 호출자는 저장한 요청 ID를 명시한다.
 email_id = await mailer.send_verification_email(
     "member@example.com",
     code="123456",  # 예시값. 생성·검증·만료는 호출자가 관리한다.
@@ -56,14 +61,15 @@ email_id = await mailer.send_email(
 
 FastAPI에서는 `mailer: ResendMailer = Depends(get_mailer)`로 주입한다.
 HTTPX 비동기 클라이언트로 요청하고 기본 호출은 연결을 호출 내에서 정리한다.
-반복 발송 시 호출자가 수명을 관리하는 `httpx.AsyncClient`를
-`ResendMailer(settings, client)`에 주입해 연결을 재사용할 수 있다.
+HTTP 연결 생성·인증·정리는 모듈 내부에서 수행하며 호출자가 연결 객체를 전달하지 않는다.
 성공 시 반환하는 문자열은 Resend API 접수 ID이며 수신함 도착의 증거는 아니다.
 HTML에 사용자 입력을 넣는 호출자는 해당 입력을 이스케이프해야 한다.
 
 ## 중복 방지와 실패 계약
 
-`idempotency_key`는 호출자가 저장한 발송 요청 ID에서 만든다. 키는 공백 없는
+`idempotency_key`를 생략하면 모듈이 발송 호출마다 새로운 UUID를 생성한다.
+자동 재시도는 없으며, 별도의 호출은 새 발송으로 취급한다. 같은 발송의 재시도를
+관리하는 호출자는 저장한 요청 ID로 키를 명시해야 한다. 키는 공백 없는
 ASCII 문자 1~256자로 제한한다. 코드·이메일·비밀값을 키에 넣지 않는다.
 같은 발송을 재시도할 때는 **동일 키와 동일 본문**을 사용하고, 새 인증번호를
 재발송하는 별도 요청에는 새 키를 사용한다. Resend의 중복 방지 보관 기간은

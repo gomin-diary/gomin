@@ -2,6 +2,7 @@
 
 import re
 from email.headerregistry import Address
+from uuid import uuid4
 
 import httpx
 
@@ -35,12 +36,11 @@ def _mailbox(value: str) -> Address:
 
 
 class ResendMailer:
-    def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None):
+    def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = client
 
     async def send_email(
-        self, to: str, subject: str, text: str, *, idempotency_key: str,
+        self, to: str, subject: str, text: str, *, idempotency_key: str | None = None,
         html: str | None = None,
     ) -> str:
         """Return an API acceptance ID, not proof of inbox delivery. Never retry."""
@@ -58,6 +58,8 @@ class ResendMailer:
         recipient = _mailbox(to)
         if "\r" in subject or "\n" in subject:
             raise ValueError("Invalid subject")
+        if idempotency_key is None:
+            idempotency_key = str(uuid4())
         if not re.fullmatch(r"[\x21-\x7e]{1,256}", idempotency_key):
             raise ValueError("An ASCII idempotency key of 1-256 characters is required")
         payload = {
@@ -69,13 +71,11 @@ class ResendMailer:
             payload["html"] = html
         headers = {"Authorization": f"Bearer {key}", "Idempotency-Key": idempotency_key,
                    "User-Agent": "Gomin/0.1"}
-        if self.client is not None:
-            return await self._deliver(self.client, payload, headers)
         async with httpx.AsyncClient(trust_env=False, follow_redirects=False) as client:
             return await self._deliver(client, payload, headers)
 
     async def send_verification_email(
-        self, to: str, code: str, *, idempotency_key: str, expires_minutes: int = 3,
+        self, to: str, code: str, *, idempotency_key: str | None = None, expires_minutes: int = 3,
     ) -> str:
         """Render a caller-provided six-digit code; do not issue or store it."""
         if not re.fullmatch(r"[0-9]{6}", code) or expires_minutes <= 0:
