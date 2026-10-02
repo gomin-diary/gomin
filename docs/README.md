@@ -4,6 +4,7 @@
 
 - [시스템 아키텍처](ARCHITECTURE.md): 기술 스택, 폴더 구조, 구성 요소와 통신 방식
 - [공통 API 응답 모델](engineering/api-response.md): 성공·오류 규격, 양쪽 모델과 호출·검증 방법
+- [공통 인증·DB 기반](engineering/auth-foundation.md): 인증 4개 테이블·DB 함수, 암호화·세션·쿠키와 인증 프록시
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
 - [인증 화면 디자인](frontend/auth-ui.md): 로그인·회원가입 화면, 입력 동작과 인증 API 연동 범위
 - [로그인·회원가입 ERD 설계 초안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1572868): 기본 인증에 필요한 4개 테이블과 구현 작업 분리

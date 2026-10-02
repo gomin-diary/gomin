@@ -14,6 +14,7 @@ Render의 Environment에 다음 값을 등록합니다. 프로젝트 URL과 Secr
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SECRET_KEY=<Supabase Cloud의 Secret 키>
 CORS_ORIGINS=["https://<프론트엔드 도메인>"]
+AUTH_COOKIE_SECURE=true
 ```
 
 DB 비밀번호나 `DATABASE_URL`은 백엔드 실행에 필요하지 않습니다. Secret 키는 서버 전용이며 프론트엔드 환경 변수에 넣지 않습니다. 이 키는 Supabase 계정용 Personal Access Token과 다릅니다.
@@ -59,7 +60,8 @@ Resend API 키는 발송 요청 인증에, 발신 도메인 검증은 해당 도
 1. 프론트엔드 주소에서 페이지와 정적 파일이 정상적으로 열리는지 확인한다.
 2. 백엔드의 `GET /api/v1/health`가 HTTP 200과 `status: ok`를 반환하는지 확인한다.
 3. `GET /api/v1/health/db`가 HTTP 200과 `database: connected`를 반환하는지 확인한다. HTTP 503이면 Supabase 설정과 마이그레이션 적용 여부를 확인한다.
-4. 배포된 프론트엔드 출처에서 API 요청을 보내 CORS 허용 여부와 API 주소 설정을 확인한다. 홈 화면은 API를 자동 호출하지 않으므로 페이지 표시만으로 API 연결을 판단하지 않는다.
+4. 배포된 프론트엔드 출처에서 API 요청을 보내 CORS 허용 여부와 API 주소 설정을 확인한다. 홈 화면은 API를 자동 호출하지 않으므로 페이지 표시만으로 DB 연결 성공을 판단하지 않는다.
+5. 인증 API는 같은 출처의 Next.js 경로를 통해 중계한다. 운영 HTTPS에서 Secure·HttpOnly·SameSite=Lax 쿠키와 현재 사용자 조회·로그아웃을 확인한다. [공통 인증·DB 기반](../engineering/auth-foundation.md)을 따른다.
 
 배포 전 코드 검사는 [코딩과 검증 규칙](../engineering/coding-conventions.md)을 따른다.
 
