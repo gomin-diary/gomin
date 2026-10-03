@@ -68,7 +68,7 @@ export function AuthForm({ mode, initialNotice = "" }: { mode: "login" | "signup
       acceptLogin(member);
       formRef.current?.reset();
       const destination = new URLSearchParams(window.location.search).get("next");
-      router.replace(destination === "/talk" || destination === "/collection" ? destination : "/");
+      router.replace(destination === "/talk" || destination === "/collection" || destination === "/settings" ? destination : "/");
     } catch (error) {
       setNotice(error instanceof ApiRequestError ? error.message : "로그인에 실패했어요. 다시 시도해 주세요.");
       formRef.current?.querySelector<HTMLInputElement>("[name=password]")?.focus();

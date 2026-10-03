@@ -46,11 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ++version.current;
     await apiFetch<null>("/api/v1/auth/logout", { method: "POST" });
     ++version.current;
-    // Let the destination's session check resolve guest state. Setting null on
-    // a protected page would race its login redirect with the home navigation.
-    setMember(undefined);
+    // Home logout has no pathname transition to trigger a session check.
+    // Protected pages wait for home navigation to avoid a login redirect race.
+    setMember(pathname === "/" ? null : undefined);
     setError("");
-  }, []);
+  }, [pathname]);
   const invalidate = useCallback(() => { ++version.current; }, []);
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
