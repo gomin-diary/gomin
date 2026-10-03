@@ -6,7 +6,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Response
 from supabase import AsyncClient
 
-from app.api.routes.auth import set_session_cookie
+from app.auth.session import set_session_cookie
 from app.auth.crypto import code_digest
 from app.auth.security import hash_password, new_session_token, token_digest
 from app.auth.service import password_slots, rpc

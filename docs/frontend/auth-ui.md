@@ -37,4 +37,6 @@
 
 위의 12개 화면 크기 조사는 이전 준비 화면 기준이다. 실제 회원가입 변경은 [회원가입 구현](../engineering/signup.md)의 별도 검증 범위를 따른다. 실제 iOS/Android 기기의 키보드·안전영역과 Safari 렌더링은 확인하지 않았다. 모바일 입력 글자 크기는 포커스 시 확대를 줄이기 위해 16px 이상으로 유지한다.
 
+`AuthPage`의 `children`에 `SignupForm`을 전달하며, 공통 화면은 기능 폼을 직접 import하지 않는다.
+
 [문서 목록](../README.md)

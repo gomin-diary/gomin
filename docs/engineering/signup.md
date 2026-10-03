@@ -30,9 +30,11 @@ FastAPI가 인증하며 Supabase Auth는 사용하지 않는다.
 비밀번호 입력 상한은 1,024자다. 해시는 scrypt(N=32768, r=8, p=3)과 무작위 salt를
 사용한다. [OWASP 비밀번호 저장 기준](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)을 참고했다.
 
+세션 쿠키는 `app.auth.session.set_session_cookie`로 발급하고, 현재 사용자 조회·로그아웃은 공통 `sessions.py`에서 처리한다.
+
 ## 데이터와 원자성
 
-공통 로그인 기반의 `20261002000000_login_sessions.sql`은 `members`, `auth_sessions`와
+[공통 인증·DB 기반](auth-foundation.md)의 `20261002000000_login_sessions.sql`은 `members`, `auth_sessions`와
 세션 생성·갱신 RPC를 제공한다. `20261002010000_signup_verification.sql`은
 `member_consents`, `email_verifications` 및 가입 RPC를 추가한다. 모든 인증 테이블에
 RLS를 적용하고 Data API 권한과 RPC 실행을 서버의 `service_role`로 제한한다.

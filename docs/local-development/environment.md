@@ -10,6 +10,7 @@
 | 백엔드 | `SUPABASE_URL` | 로컬 Supabase CLI에서 조회한 루프백 URL |
 | 백엔드 | `SUPABASE_SECRET_KEY` | 로컬 Secret 키 또는 service_role 키 |
 | 백엔드 | `CORS_ORIGINS` | `["http://127.0.0.1:3000","http://localhost:3000"]` |
+| 백엔드 | `AUTH_COOKIE_SECURE` | `false` (로컬 HTTP에서만 사용) |
 
 키를 직접 복사할 필요가 없습니다. `NEXT_PUBLIC_` 변수는 브라우저에 공개되므로 서버 Secret 키를 넣지 않습니다. 앱을 직접 실행하거나 클라우드에 배포할 때는 해당 환경의 값을 따로 설정합니다.
 
@@ -31,6 +32,8 @@ PostgreSQL 주소는 DB 관리 도구용입니다. 앱은 Supabase Data API로 �
 공통 실행기를 사용하지 않으면 환경 파일에 값을 직접 설정한다. 백엔드 설정은 `backend/.env.example`, 프론트엔드 설정은 `frontend/.env.example`을 기준으로 작성한다.
 
 - 백엔드에는 로컬 Supabase URL과 서버 전용 키, 허용할 프론트엔드 출처를 설정한다. CLI에서 레거시 키만 제공하면 `service_role` 키를 사용할 수 있다.
+- 로컬 HTTP 인증에는 `AUTH_COOKIE_SECURE=false`를 설정한다. 운영 HTTPS에서는 기본값 `true`를 유지한다. [공통 인증·DB 기반](../engineering/auth-foundation.md)에 쿠키와 API 중계 경로를 설명한다.
+- 이메일 인증·가입 기능을 연결할 때는 `AUTH_HMAC_KEY`와 약관 버전 설정을 `backend/.env.example` 기준으로 추가한다.
 - 프론트엔드에는 `NEXT_PUBLIC_API_BASE_URL`을 설정한다. 값을 바꾼 뒤 개발 서버를 다시 실행한다.
 - 메일 제공자는 `MAIL_PROVIDER`로 선택한다. `resend`가 기본이며 Resend 메일 발송에는 백엔드의 `RESEND_API_KEY`와 검증된 발신 주소 `RESEND_FROM_EMAIL`을 설정한다. SMTP를 선택하면 기존 `SMTP_*` 설정을 사용한다. [이메일 발송 안내](../engineering/email-delivery.md)에서 설정 항목과 호출 방법을 확인한다.
 - 회원가입 이메일 인증에는 서버 전용 `AUTH_HMAC_KEY`(최소 32바이트의 독립 난수 키)가 필요하다. 로컬 HTTP에서는 `AUTH_COOKIE_SECURE=false`를 사용하고 약관 버전은 프론트 문서와 맞춘다. [회원가입 구현 안내](../engineering/signup.md)의 설정을 따른다.

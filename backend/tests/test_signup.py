@@ -7,7 +7,8 @@ from uuid import uuid4
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.routes.auth import router as auth_router, get_auth_repository, get_settings as auth_settings
+from app.api.routes.sessions import router as sessions_router
+from app.auth.session import get_auth_repository, get_auth_settings as auth_settings
 from app.api.routes.signup import router, get_settings as signup_settings
 from app.auth.crypto import code_digest
 from app.auth.security import hash_password, verify_password, token_digest
@@ -42,7 +43,7 @@ class SignupApiTests(unittest.TestCase):
         app = FastAPI(responses=ERROR_RESPONSES)
         register_exception_handlers(app)
         app.include_router(router)
-        app.include_router(auth_router)
+        app.include_router(sessions_router)
         app.dependency_overrides[get_supabase] = lambda: self.db
         app.dependency_overrides[get_mailer] = lambda: self.mailer
         app.dependency_overrides[signup_settings] = lambda: SETTINGS

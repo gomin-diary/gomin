@@ -36,7 +36,7 @@ backend/
     api/
       routes/                   기능별 API 라우터와 상태 확인 API
     core/                       환경변수 설정, 공통 오류와 예외 처리
-    auth/                       비밀번호·인증 코드 해시와 세션 기반
+    auth/                       공통 비밀번호·인증 코드 해시와 세션 기반
     db/                         Supabase 클라이언트 생성과 요청 의존성
     mail/                       공통 메일 인터페이스와 SMTP·Resend 구현
     schemas/                    공통 응답·오류 및 API 데이터 모델
@@ -97,7 +97,7 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 | --- | --- |
 | `GET /api/v1/health` | API 서버의 응답 확인 |
 | `GET /api/v1/health/db` | Supabase의 `health_check` 함수를 호출해 DB 연결 확인 |
-| `/api/v1/auth/...` | 이메일 인증·가입·로그인·현재 회원 조회·로그아웃. [회원가입 구현](engineering/signup.md)의 계약 참고 |
+| `/api/v1/auth/...` | 이메일 인증·가입·현재 회원 조회·로그아웃. [회원가입 구현](engineering/signup.md)의 계약 참고 |
 
 DB 상태 확인 중 호출이 실패하거나 함수가 `true`를 반환하지 않으면 HTTP 503으로 응답한다. 로그인과 사용자별 권한 검사는 이 상태 확인 API에 포함되지 않는다.
 
@@ -108,6 +108,8 @@ DB 상태 확인 중 호출이 실패하거나 함수가 `true`를 반환하지 
 백엔드는 `SUPABASE_URL`과 서버 전용 `SUPABASE_SECRET_KEY`로 Supabase Data API를 호출한다. DB 비밀번호로 직접 접속하지 않으며, 서버 키는 프론트엔드에 전달하지 않는다.
 
 DB 변경은 `supabase/migrations/`의 SQL 파일로 관리한다. `health_check` 함수는 `service_role`에 실행 권한을 부여한다. 인증 데이터는 `members`, `member_consents`, `auth_sessions`, `email_verifications`에 저장하고 서버 전용 권한과 RLS를 적용한다. 회원·동의·초기 세션 생성과 가입 증표 소비는 가입 RPC의 한 트랜잭션으로 처리한다. 마이그레이션 적용은 앱 실행과 별도로 수행한다.
+
+공통 세션 검증은 `app.auth.session.require_member`를 사용하며, 현재 사용자 조회와 로그아웃은 `sessions.py`에서 처리한다. [공통 인증·DB 기반](engineering/auth-foundation.md)을 따른다.
 
 ## 관련 문서
 
