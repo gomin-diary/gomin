@@ -36,11 +36,10 @@ UPDATE한다. 로그아웃과 경합해도 삭제된 세션을 INSERT·UPSERT로
 
 ## 쿠키와 호출 경로
 
-브라우저 → 같은 출처의 Next.js `/api/v1/auth/*` → FastAPI 경로로 전달한다.
-`apiFetch`는 인증 경로에 상대 주소와 `credentials: same-origin`을 사용한다.
-Next.js는 `NEXT_PUBLIC_API_BASE_URL`을 API 목적지로 사용하며 인증 쿠키와
-`Set-Cookie`만 중계한다. 서로 다른 Vercel·Render 도메인에서도 `SameSite=Lax`를
-유지할 수 있다. 기존 다른 API는 설정된 API 주소를 직접 호출한다.
+브라우저는 `NEXT_PUBLIC_API_BASE_URL`의 FastAPI `/api/v1/auth/*`를 직접 호출한다.
+`apiFetch`는 인증 요청에 `credentials: "include"`를 사용한다. 프론트와 API는 같은 상위
+도메인의 HTTPS 주소를 사용하며, 백엔드는 등록된 프론트 출처의 쿠키 포함 CORS 요청을
+허용한다. 세션 쿠키는 API 호스트에 저장되며 Next.js 중계 경로는 사용하지 않는다.
 
 쿠키는 HttpOnly·SameSite=Lax·Path=/·Max-Age=604800이다.
 `AUTH_COOKIE_SECURE`는 기본 `true`이며 운영 HTTPS에서는 그대로 유지한다.
@@ -98,6 +97,6 @@ npm test
 
 백엔드 인증 테스트는 모의 저장소로 정규화·동일 실패 안내·안전한 쿠키·독립 세션·갱신·
 만료·위조·삭제 후 재사용 거부·로그아웃·DB 실패와 비밀번호 해시를 확인한다.
-로컬 모의 API와 프로덕션 빌드의 Next.js 중계를 사용한 브라우저 검증에서 데스크톱·390×844 모바일의 실패 안내·성공 이동·새로고침·보호 화면 복귀·로그아웃·서버 연결 실패 안내를 확인했다. 이 검증은 실제 PostgreSQL 적용·행 잠금 경합·운영 도메인 쿠키 검증을 대신하지 않는다. 로컬 DB가 실행 중이지 않아 마이그레이션은 적용하지 않았다.
+직접 호출로 전환하기 전, 로컬 모의 API와 프로덕션 빌드의 Next.js 중계를 사용한 브라우저 검증에서 데스크톱·390×844 모바일의 실패 안내·성공 이동·새로고침·보호 화면 복귀·로그아웃·서버 연결 실패 안내를 확인했다. 이 검증은 실제 PostgreSQL 적용·행 잠금 경합·운영 도메인 쿠키 검증을 대신하지 않는다. 로컬 DB가 실행 중이지 않아 마이그레이션은 적용하지 않았다.
 
 [문서 목록](../README.md)

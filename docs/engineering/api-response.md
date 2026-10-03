@@ -120,7 +120,7 @@ try {
 | JSON 파싱 실패·구조 오류·HTTP 상태와 `success` 불일치·빈 204 | `INVALID_RESPONSE`, 실제 HTTP 상태 유지 |
 | 요청 또는 본문 읽기 중 `AbortError` | 원래 취소 예외 유지 |
 
-타입 인자 `T`는 개별 데이터의 런타임 검증을 수행하지 않는다. 공통 래퍼와 오류 상세 구조만 검사하며 API별 데이터 검증이 필요한 곳에서는 별도 검증을 추가한다. 일반 API 주소·단일 `/` 경로 검사·`cache: "no-store"` 동작을 유지한다. `/api/v1/auth/` 경로는 쿠키 전달을 위해 같은 출처의 Next.js 중계 경로와 `credentials: same-origin`을 사용한다.
+타입 인자 `T`는 개별 데이터의 런타임 검증을 수행하지 않는다. 공통 래퍼와 오류 상세 구조만 검사하며 API별 데이터 검증이 필요한 곳에서는 별도 검증을 추가한다. 모든 API 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들며 단일 `/` 경로 검사·`cache: "no-store"` 동작을 유지한다. `/api/v1/auth/` 경로는 백엔드에 직접 요청하고 쿠키 전달을 위해 `credentials: "include"`를 사용한다.
 
 ## 변경과 검증
 

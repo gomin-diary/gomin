@@ -301,6 +301,25 @@ class ResponseTests(unittest.TestCase):
         response = self.client.get("/_test/internal", headers={"Origin": "http://localhost:3000"})
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.headers.get("access-control-allow-origin"), "http://localhost:3000")
+        self.assertEqual(response.headers.get("access-control-allow-credentials"), "true")
+
+    def test_auth_preflight_allows_credentials_only_from_configured_origins(self):
+        for origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+            with self.subTest(origin=origin):
+                response = self.client.options("/api/v1/auth/login", headers={
+                    "Origin": origin,
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                })
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.headers.get("access-control-allow-origin"), origin)
+                self.assertEqual(response.headers.get("access-control-allow-credentials"), "true")
+        response = self.client.options("/api/v1/auth/login", headers={
+            "Origin": "https://untrusted.example.test",
+            "Access-Control-Request-Method": "POST",
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIsNone(response.headers.get("access-control-allow-origin"))
 
     def test_openapi_documents_success_and_error_models(self):
         operation = self.client.get("/openapi.json").json()["paths"]["/api/v1/health/db"]["get"]
