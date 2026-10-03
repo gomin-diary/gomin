@@ -1,19 +1,31 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
+import { useUiStore } from "@/providers/ui-store-provider";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const { member, error, refresh } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const showToast = useUiStore((state) => state.showToast);
+  const dismissToast = useUiStore((state) => state.dismissToast);
+  const notification = useRef<{ key: string; id: number } | null>(null);
   useEffect(() => {
+    if (member) {
+      if (notification.current) dismissToast(notification.current.id);
+      notification.current = null;
+      return;
+    }
+    const key = member === null ? "login-required" : error;
+    if (key && key !== notification.current?.key) {
+      const id = member === null
+        ? showToast("로그인을 진행해주세요")
+        : showToast(error, { label: "다시 시도", onClick: () => void refresh() });
+      notification.current = { key, id };
+    }
     if (member === null) router.replace(`/login?next=${encodeURIComponent(pathname)}&reason=auth`);
-  }, [member, pathname, router]);
-  if (!member) return <div className="auth-status" role="status">
-    <p>{error || (member === null ? "로그인이 필요해요. 로그인 화면으로 이동합니다." : "로그인 상태를 확인하고 있어요.")}</p>
-    {error ? <button type="button" onClick={() => void refresh()}>다시 확인</button> : null}
-  </div>;
-  return children;
+  }, [member, error, pathname, router, refresh, showToast, dismissToast]);
+  return member ? children : null;
 }

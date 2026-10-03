@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { UiStoreProvider } from "@/providers/ui-store-provider";
 import { AuthProvider } from "@/providers/auth-provider";
+import { Toast } from "@/components/toast";
 import "./globals.css";
 
 const title = "고민일기";
@@ -43,7 +44,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
-      <body><UiStoreProvider><AuthProvider>{children}</AuthProvider></UiStoreProvider></body>
+      <body><UiStoreProvider><AuthProvider>{children}<Toast /></AuthProvider></UiStoreProvider></body>
     </html>
   );
 }
