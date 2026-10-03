@@ -61,7 +61,7 @@ HTTP 2xx 응답은 성공 모델을 사용하고, HTTP 4xx·5xx 응답은 실패
 | 500 | `INTERNAL_ERROR` | 예상하지 못한 서버 오류 |
 | 503 | `SERVICE_UNAVAILABLE` | DB 등 의존 서비스 이용 불가 |
 
-표에 없는 HTTP 예외는 원래 상태 코드를 유지하며, 4xx는 `HTTP_ERROR`, 5xx는 `INTERNAL_ERROR`로 표현한다. 업무별 오류는 `AppError`로 명시적인 코드를 정의한다. 공통 세션 API의 쿠키·업무 오류는 [공통 인증·DB 기반](auth-foundation.md)을 따른다.
+표에 없는 HTTP 예외는 원래 상태 코드를 유지하며, 4xx는 `HTTP_ERROR`, 5xx는 `INTERNAL_ERROR`로 표현한다. 업무별 오류는 `AppError`로 명시적인 코드를 정의한다. 인증·세션 API도 이 계약을 사용하며 업무별 오류 코드는 [회원가입 구현](signup.md)을 따른다.
 
 입력 검증의 상세 코드는 필수 값 누락에 `REQUIRED`, 파싱·타입 오류와 잘못된 JSON에 `INVALID_FORMAT`, 그 외 검증 실패에 `INVALID_VALUE`를 사용한다. 검증기의 원본 `input`, `ctx`, `msg`를 응답으로 전달하지 않는다. 중첩 `Depends`에 선언한 query·path·header·cookie 필드도 오류 경로에 유지한다. 본문 필드의 `AliasChoices`·`AliasPath`는 검증 오류가 가리키는 선언된 별칭 경로를 유지하며, 그 아래의 동적 딕셔너리 키는 계속 가린다. 원래 필드명을 허용하는 `validate_by_name` 설정과 별칭 대신 필드명을 보고하는 `loc_by_alias=False` 설정도 반영한다. 쿼리 모델 내부의 선언된 필드명을 유지하며, 일반 모델 유니온(`A | B`)의 오류 경로에서는 Pydantic이 추가한 모델명 구분 표시를 제거한다. 배열 인덱스는 유지하고 동적 키와 알 수 없는 경로는 가린다.
 
@@ -90,7 +90,7 @@ async def health() -> ApiSuccess[HealthData]:
 
 `FastAPI(responses=ERROR_RESPONSES)`가 공통 오류 스키마를 OpenAPI에 등록한다. 새 라우트가 자체 `responses`를 지정하면 해당 오류 응답에도 `ApiFailure` 모델을 사용한다.
 
-현재 `/api/v1/health`와 `/api/v1/health/db`가 성공 래퍼를 사용한다. DB RPC 호출 실패 또는 `true`가 아닌 결과는 HTTP 503과 `SERVICE_UNAVAILABLE`을 반환한다.
+상태 API와 `/api/v1/auth/...` 인증 API가 성공 래퍼를 사용한다. DB RPC 호출 실패 또는 `true`가 아닌 결과는 HTTP 503과 `SERVICE_UNAVAILABLE`을 반환한다.
 
 ## 프론트엔드 적용
 
@@ -120,7 +120,7 @@ try {
 | JSON 파싱 실패·구조 오류·HTTP 상태와 `success` 불일치·빈 204 | `INVALID_RESPONSE`, 실제 HTTP 상태 유지 |
 | 요청 또는 본문 읽기 중 `AbortError` | 원래 취소 예외 유지 |
 
-타입 인자 `T`는 개별 데이터의 런타임 검증을 수행하지 않는다. 공통 래퍼와 오류 상세 구조만 검사하며 API별 데이터 검증이 필요한 곳에서는 별도 검증을 추가한다. 일반 API 주소·단일 `/` 경로 검사·`cache: "no-store"` 동작을 유지한다. `/api/v1/auth/` 경로는 같은 출처의 Next.js 중계 경로와 `credentials: same-origin`을 사용한다.
+타입 인자 `T`는 개별 데이터의 런타임 검증을 수행하지 않는다. 공통 래퍼와 오류 상세 구조만 검사하며 API별 데이터 검증이 필요한 곳에서는 별도 검증을 추가한다. 단일 `/` 경로 검사·`cache: "no-store"` 동작을 유지한다. `/api/v1/auth/` 요청은 동일 출처 프록시를 사용하고 `credentials: "same-origin"`으로 세션 쿠키를 전달한다. 나머지 요청은 기존 API 기본 주소를 사용한다.
 
 ## 변경과 검증
 
@@ -136,5 +136,7 @@ npm --prefix frontend run typecheck
 ```
 
 프론트 테스트는 TypeScript 직접 실행을 지원하는 Node.js 24를 사용한다. 백엔드 테스트는 정상 200·DB 실패 503·입력 실패 422·HTTP 401 헤더·404·안전한 500·500 CORS·OpenAPI를 검증한다. 프론트 테스트는 성공 데이터, 서버 오류, 잘못된 응답, 네트워크 실패, 취소와 경로 검사를 검증한다. 모의 DB 테스트는 실제 Supabase 연결이나 배포 환경 검증을 대신하지 않는다.
+
+공통 세션·쿠키·DB와 인증 화면의 연결점은 [공통 인증·DB 기반](auth-foundation.md)을 따른다.
 
 [문서 목록](../README.md)

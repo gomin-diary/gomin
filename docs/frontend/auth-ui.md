@@ -25,7 +25,9 @@
 해당 화면의 메모리에 유지한다. 로그인과 회원가입 간 이동은 Next.js Link를 사용한다.
 인증 API 호출은 `apiFetch`로 동일 출처 프록시를 사용하며 쿠키·세션 동작은
 [공통 인증·DB 기반](../engineering/auth-foundation.md)을 따른다.
-각 기능의 API·입력 정책·검증 범위는 기능별 구현 문서에서 관리한다.
+`/signup`은 `SignupForm`을 `AuthPage`의 `children`으로 전달한다. 이메일 인증·일회용 증표·
+약관 동의·가입 API와 검증 범위는 [회원가입 구현](../engineering/signup.md)을 따른다.
+약관과 개인정보 전문은 `/terms`, `/privacy`에서 제공한다.
 
 ## 검증
 

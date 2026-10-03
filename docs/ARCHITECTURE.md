@@ -40,10 +40,11 @@ backend/
     db/                         Supabase 클라이언트 생성과 요청 의존성
     mail/                       공통 메일 인터페이스와 SMTP·Resend 구현
     schemas/                    공통 응답·오류 및 API 데이터 모델
-  tests/                        API 응답 계약 및 메일 발송 테스트
+  tests/                        API 응답 계약·메일 발송·회원가입 테스트
 supabase/
   migrations/                   DB 스키마와 SQL 함수 변경
-  tests/                        인증 DB 마이그레이션 회귀 테스트
+  seed.sql                      로컬 인증 테스트 계정
+  tests/                        공통 인증 DB·가입·seed 회귀 테스트
 scripts/                        OS별 설치와 개발 서버 실행·재시작·종료
   tests/                        설치·실행 스크립트 테스트
 docs/                           문서 인덱스와 시스템 아키텍처
@@ -60,13 +61,14 @@ docs/                           문서 인덱스와 시스템 아키텍처
 
 ```mermaid
 flowchart LR
-    Browser[브라우저] -->|페이지 요청| Web[Next.js]
+    Browser[브라우저] -->|페이지·동일 출처 인증 요청| Web[Next.js]
+    Web -->|인증 프록시·세션 쿠키| API[FastAPI / Uvicorn]
     Caller[API 호출자] -->|HTTP 요청| API[FastAPI / Uvicorn]
     API -->|Supabase Python SDK| DataAPI[Supabase Data API]
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
 ```
 
-프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 일반 API 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고, 인증 API는 같은 출처의 Next.js 경로로 중계한다. 응답은 캐시하지 않는다.
+프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 일반 API 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고, 인증 요청은 동일 출처 `/api/v1/auth/...`의 Next.js 프록시를 거쳐 해당 API 주소로 전달한다. 응답은 캐시하지 않는다.
 
 JSON API는 `{ success, data, error }` 공통 응답 구조를 사용한다. 성공 시 `data`와 `error: null`, 실패 시 `data: null`과 오류 코드·문구·필드별 오류를 반환한다. HTTP 상태 코드는 유지한다. 프론트의 `apiFetch<T>()`는 공통 구조를 검사하고 성공 데이터를 반환하며, 실패는 `ApiRequestError`로 전달한다. 상세 규격과 적용 방법은 [공통 API 응답 모델](engineering/api-response.md)을 따른다.
 
@@ -88,7 +90,7 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 `base.py`에 인터페이스와 인증 메일 본문을 정의하고, `smtp.py`와 `resend.py`에
 각 제공자의 발송 구현을 둔다. `dependencies.py`의 `get_mailer()`는
 `MAIL_PROVIDER` 설정으로 구현을 선택하며 기본값은 `resend`다.
-인증번호 발급·검증과 회원가입 API는 포함하지 않는다. 설정과 사용법은
+메일 모듈에는 인증번호 발급·검증과 회원가입 API를 포함하지 않으며, 호출하는 가입 라우터가 처리한다. 설정과 사용법은
 [SMTP·Resend 이메일 발송](engineering/email-delivery.md)에서 확인한다.
 
 | API | 역할 |
@@ -97,6 +99,7 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 | `GET /api/v1/health/db` | Supabase의 `health_check` 함수를 호출해 DB 연결 확인 |
 | `GET /api/v1/auth/me` | 현재 세션 검증·만료 갱신과 회원 조회 |
 | `POST /api/v1/auth/logout` | 현재 기기의 세션·쿠키 제거 |
+| `/api/v1/auth/...` | 이메일 인증·가입·현재 회원 조회·로그아웃. [회원가입 구현](engineering/signup.md)의 계약 참고 |
 
 DB 상태 확인 중 호출이 실패하거나 함수가 `true`를 반환하지 않으면 HTTP 503으로 응답한다. 상태 확인 API는 사용자별 업무 권한을 검사하지 않는다. 보호 API는 `app.auth.session.require_member`를 의존성으로 사용한다.
 
@@ -106,7 +109,7 @@ DB 상태 확인 중 호출이 실패하거나 함수가 `true`를 반환하지 
 
 백엔드는 `SUPABASE_URL`과 서버 전용 `SUPABASE_SECRET_KEY`로 Supabase Data API를 호출한다. DB 비밀번호로 직접 접속하지 않으며, 서버 키는 프론트엔드에 전달하지 않는다.
 
-DB 변경은 `supabase/migrations/`의 SQL 파일로 관리한다. `health_check` 함수는 `service_role`에 실행 권한을 부여한다. 마이그레이션 적용은 앱 실행과 별도로 수행한다.
+DB 변경은 `supabase/migrations/`의 SQL 파일로 관리한다. `health_check` 함수는 `service_role`에 실행 권한을 부여한다. 인증 데이터는 `members`, `member_consents`, `auth_sessions`, `email_verifications`에 저장하고 서버 전용 권한과 RLS를 적용한다. 회원·동의·초기 세션 생성과 가입 증표 소비는 가입 RPC의 한 트랜잭션으로 처리한다. 마이그레이션 적용은 앱 실행과 별도로 수행한다.
 
 인증 DB는 `members`, `auth_sessions`, `email_verifications`, `member_consents`와
 세션·이메일 인증·가입 함수를 공통 기반에서 관리한다. FastAPI가 인증을 처리하고

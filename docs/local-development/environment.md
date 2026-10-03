@@ -36,6 +36,7 @@ PostgreSQL 주소는 DB 관리 도구용입니다. 앱은 Supabase Data API로 �
 - 이메일 인증·가입 기능을 연결할 때는 `AUTH_HMAC_KEY`와 약관 버전 설정을 `backend/.env.example` 기준으로 추가한다.
 - 프론트엔드에는 `NEXT_PUBLIC_API_BASE_URL`을 설정한다. 값을 바꾼 뒤 개발 서버를 다시 실행한다.
 - 메일 제공자는 `MAIL_PROVIDER`로 선택한다. `resend`가 기본이며 Resend 메일 발송에는 백엔드의 `RESEND_API_KEY`와 검증된 발신 주소 `RESEND_FROM_EMAIL`을 설정한다. SMTP를 선택하면 기존 `SMTP_*` 설정을 사용한다. [이메일 발송 안내](../engineering/email-delivery.md)에서 설정 항목과 호출 방법을 확인한다.
+- 회원가입 이메일 인증에는 서버 전용 `AUTH_HMAC_KEY`(최소 32바이트의 독립 난수 키)가 필요하다. 로컬 HTTP에서는 `AUTH_COOKIE_SECURE=false`를 사용하고 약관 버전은 프론트 문서와 맞춘다. [회원가입 구현 안내](../engineering/signup.md)의 설정을 따른다.
 - 로컬 키 확인은 개발자가 자신의 터미널에서 수행하고 출력은 공유하지 않는다. AI 에이전트는 키 조회 명령을 실행하거나 실제 환경 파일을 읽지 않는다.
 
 실행 순서는 [서버 개별 실행](manual-run.md), 스키마 변경 절차는 [코딩과 검증 규칙](../engineering/coding-conventions.md)을 참고한다.
