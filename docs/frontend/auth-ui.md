@@ -26,7 +26,10 @@
 인증 API 호출은 `apiFetch`로 백엔드를 직접 호출하며 쿠키·세션 동작은
 [공통 인증·DB 기반](../engineering/auth-foundation.md)을 따른다.
 로그인 폼과 재인증 안내는 `AuthPage`의 `children`으로 전달한다. 로그인 API·세션·검증 범위는
-[이메일 로그인과 세션](../engineering/login-auth.md)을 따른다. 회원가입 폼의 기본 연결점은 유지한다.
+[이메일 로그인과 세션](../engineering/login-auth.md)을 따른다.
+`/signup`은 `SignupForm`을 `AuthPage`의 `children`으로 전달한다. 이메일 인증·일회용 증표·
+약관 동의·가입 API와 검증 범위는 [회원가입 구현](../engineering/signup.md)을 따른다.
+약관과 개인정보 전문은 `/terms`, `/privacy`에서 제공한다.
 
 ## 검증
 

@@ -114,3 +114,8 @@
   .signupCard .field input { font-size: 16px; }
   .signupCard .visibility { width: 22px; }
 }
+
+.consent { flex-wrap: wrap; }
+.consent label { display: flex; align-items: center; gap: 8px; }
+.consent a { color: var(--auth-green); white-space: nowrap; }
+.draftNote { text-align: left; color: var(--auth-muted); font-size: 12px; }

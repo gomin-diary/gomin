@@ -25,6 +25,19 @@ Render의 Root Directory는 `backend`, Build Command는 `pip install -r requirem
 
 Supabase Cloud에서 Data API를 활성화하고 `public` 스키마를 노출해야 합니다. 배포 전 `supabase/migrations/`의 SQL을 해당 프로젝트에 적용합니다. 현재 상태 확인 함수는 Supabase SQL Editor에서 `20260929000000_health_check.sql` 내용을 실행하면 추가할 수 있습니다. 애플리케이션은 시작할 때 스키마를 변경하지 않습니다.
 
+## 회원가입 인증 설정
+
+이메일 인증에 서버 전용 `AUTH_HMAC_KEY`(최소 32바이트의 독립 난수 키)가 필요하다.
+운영 HTTPS에서는 `AUTH_COOKIE_SECURE=true`를 사용한다. 약관 전문·프론트 버전과 서버의
+`AUTH_TERMS_VERSION`, `AUTH_PRIVACY_VERSION`을 함께 관리한다. 현재 기본 버전은 개발용
+초안 `dev-2026-10-02`이며 운영 적용 전에 전문·버전을 확정한다. 인증 API는 브라우저에서
+백엔드로 직접 호출하며 HttpOnly·SameSite=Lax 쿠키를 API 호스트에 설정한다.
+프론트와 API는 같은 상위 도메인의 HTTPS 주소를 사용하며 쿠키 포함 CORS 요청을 허용한다.
+
+`20261002000000_login_sessions.sql`, `20261002010000_signup_verification.sql`도
+Supabase Cloud에 적용해야 한다. `supabase/seed.sql`의 로컬 테스트 계정은 운영에 적용하지 않는다.
+API·데이터 동작과 검증 범위는 [회원가입 구현](../engineering/signup.md)을 따른다.
+
 ## 인증 메일 발송 설정
 
 Render Free 웹 서비스는 SMTP용 25·465·587번 포트의 outbound 연결을 차단하므로

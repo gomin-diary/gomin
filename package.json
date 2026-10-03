@@ -11,7 +11,8 @@
     "supabase:status": "supabase status",
     "db:migration:new": "supabase migration new",
     "db:migrate": "supabase migration up --local",
-    "test": "node --test scripts/tests/*.test.mjs"
+    "test": "node --test scripts/tests/*.test.mjs",
+    "db:seed": "supabase db query --local --file supabase/seed.sql"
   },
   "devDependencies": {
     "supabase": "2.118.0"
