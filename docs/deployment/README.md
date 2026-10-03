@@ -6,6 +6,8 @@
 
 Frontend는 `frontend/`의 Next.js 애플리케이션입니다. `frontend/package.json`에 `build`, `start`, `lint`, `typecheck` 명령이 정의되어 있습니다. 공통 API 함수는 `NEXT_PUBLIC_API_BASE_URL`을 사용하며, 배포 시 Render API 주소를 설정합니다. `frontend/.env.example`의 루프백 주소는 로컬 개발용입니다. 서버 Secret 키를 `NEXT_PUBLIC_` 변수에 넣지 않습니다.
 
+공유 이미지의 절대 URL은 `NEXT_PUBLIC_SITE_URL`을 기준으로 생성한다. 커스텀 도메인을 사용하면 이 값을 실제 공개 출처(예: `https://your-domain.com`)로 설정하고 재빌드한다. 값이 없으면 Vercel의 `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL` 순서로 사용하며 로컬에서는 `http://localhost:3000`으로 폴백한다. 배포 후 페이지의 `og:image`가 공개 HTTPS 주소인지와 이미지 접근이 가능한지 확인한다.
+
 ## 백엔드 — Render와 Supabase Cloud
 
 Render의 Environment에 다음 값을 등록합니다. 프로젝트 URL과 Secret 키는 해당 Supabase Cloud 프로젝트의 Connect/API Keys 화면에서 확인합니다.

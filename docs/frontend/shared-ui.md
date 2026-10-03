@@ -60,6 +60,10 @@ PC 이미지 규격은 2560×1440, 모바일은 1440×3120이다. 홈 PC는 헤�
 
 프로필 캐릭터는 `Auth / Desktop account`의 이미지 레이어 `236:5249`를 PNG 4×로 내보냈다. `profile.svg`, `profile-active.svg`, `settings.svg`, `next.svg`, `logout.svg`, `back.svg`는 Figma 앱에서 각 아이콘 레이어를 SVG로 내보냈으며 런타임에는 로컬 자산만 사용한다.
 
+## Favicon과 공유 메타데이터
+
+루트 레이아웃은 `/images/icons/sprout.svg`를 SVG favicon으로 사용한다. 공통 Open Graph와 Twitter `summary_large_image`에는 기존 서비스 제목·설명과 `/images/og/gomin-diary.png`(1200×630)를 제공한다. 공유 이미지는 프로필 캐릭터 PNG를 참조해 생성한 크림색 배경의 가로형 카드이며 원본 네비게이션 자산은 유지한다. 이미지의 절대 URL 설정은 [프론트엔드 배포 안내](../deployment/README.md#프론트엔드--vercel)를 따른다.
+
 ## 검증 기준
 
 - `npm --prefix frontend run lint`, `npm --prefix frontend run typecheck`, `npm --prefix frontend run build`
