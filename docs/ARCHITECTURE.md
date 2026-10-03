@@ -68,7 +68,7 @@ flowchart LR
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
 ```
 
-프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 일반 API 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고, 인증 요청은 동일 출처 `/api/v1/auth/...`의 Next.js 프록시를 거쳐 해당 API 주소로 전달한다. 응답은 캐시하지 않는다.
+프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 모든 API 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고 백엔드를 직접 호출한다. 인증 API에는 `credentials: "include"`로 쿠키를 포함하며 응답은 캐시하지 않는다.
 
 JSON API는 `{ success, data, error }` 공통 응답 구조를 사용한다. 성공 시 `data`와 `error: null`, 실패 시 `data: null`과 오류 코드·문구·필드별 오류를 반환한다. HTTP 상태 코드는 유지한다. 프론트의 `apiFetch<T>()`는 공통 구조를 검사하고 성공 데이터를 반환하며, 실패는 `ApiRequestError`로 전달한다. 상세 규격과 적용 방법은 [공통 API 응답 모델](engineering/api-response.md)을 따른다.
 
@@ -103,6 +103,8 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 
 DB 상태 확인 중 호출이 실패하거나 함수가 `true`를 반환하지 않으면 HTTP 503으로 응답한다. 상태 확인 API는 사용자별 업무 권한을 검사하지 않는다. 보호 API는 `app.auth.session.require_member`를 의존성으로 사용한다.
 
+공통 기반에 연결한 로그인 API와 화면은 [이메일 로그인과 세션](engineering/login-auth.md)을 따른다. 인증은 FastAPI에서 처리하며 Supabase Auth는 사용하지 않는다.
+
 상태 API는 Pydantic의 `ApiSuccess[T]` 모델로 응답하며, 입력 검증·HTTP 예외·내부 오류는 공통 `ApiFailure` 모델로 변환한다. 내부 예외 문구와 입력 원문을 응답으로 노출하지 않는다. CORS 내부 오류 경계가 예상하지 못한 500 오류에도 허용 Origin 헤더를 적용한다. 성공 모델과 공통 오류 모델은 OpenAPI에 반영한다.
 
 ### 데이터베이스
@@ -114,7 +116,7 @@ DB 변경은 `supabase/migrations/`의 SQL 파일로 관리한다. `health_check
 인증 DB는 `members`, `auth_sessions`, `email_verifications`, `member_consents`와
 세션·이메일 인증·가입 함수를 공통 기반에서 관리한다. FastAPI가 인증을 처리하고
 Supabase는 데이터 저장과 트랜잭션 함수 실행을 담당한다. 브라우저 인증 요청은
-Next.js의 동일 출처 프록시를 거쳐 FastAPI로 전달한다. 코드 경계·쿠키·설정은
+`NEXT_PUBLIC_API_BASE_URL`의 FastAPI로 직접 전달한다. 코드 경계·쿠키·설정은
 [공통 인증·DB 기반](engineering/auth-foundation.md)을 따른다.
 
 ## 관련 문서

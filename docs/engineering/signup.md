@@ -9,10 +9,10 @@ FastAPI가 인증하며 Supabase Auth는 사용하지 않는다.
 ## 가입 흐름과 API
 
 모든 인증 API는 [공통 응답 계약](api-response.md)을 사용한다.
-프론트엔드는 `apiFetch`로 동일 출처 `/api/v1/auth/...`를 호출하고 Next.js가
-`NEXT_PUBLIC_API_BASE_URL`의 FastAPI로 전달한다. 프록시는 `gomin_session` 쿠키만
-전달하며 응답의 Set-Cookie를 프론트엔드 출처로 돌려준다. 운영에서 Vercel과 Render의
-서로 다른 도메인 사이에 직접 쿠키를 전달하지 않아도 `SameSite=Lax`가 적용된다.
+프론트엔드는 `apiFetch`로 `NEXT_PUBLIC_API_BASE_URL`의 `/api/v1/auth/...`를
+직접 호출하며 `credentials: "include"`로 세션 쿠키를 포함한다. 쿠키는 API 호스트에
+저장된다. 운영에서는 프론트와 API를 같은 상위 도메인의 HTTPS 주소로 제공하고,
+백엔드는 등록된 프론트 출처의 쿠키 포함 CORS 요청을 허용한다.
 
 | API | 입력 | 결과 |
 | --- | --- | --- |
@@ -91,7 +91,7 @@ npm install --prefix /tmp/gomin-signup-db-test @electric-sql/pglite
 PGLITE_MODULE=/tmp/gomin-signup-db-test/node_modules/@electric-sql/pglite/dist/index.js node --test supabase/tests/signup.test.mjs
 ```
 
-2026-10-02 검증: 백엔드 60개, SQL 8개, 프론트 API·프록시 12개 테스트와 린트·타입·빌드 통과.
+직접 호출로 전환하기 전 2026-10-02 검증: 백엔드 60개, SQL 8개, 프론트 API·프록시 12개 테스트와 린트·타입·빌드 통과.
 SQL 검증은 만료·변조·이메일 연결·재사용 거부, 재발급 무효화·늦은 응답,
 트랜잭션 롤백, 세션 만료·삭제, 접근 권한과 seed 반복 적용·기존 계정 보존을 포함한다.
 실제 FastAPI와 Next.js를 임시 PostgreSQL 어댑터·테스트 메일 발송기에 연결해 브라우저 가입 후

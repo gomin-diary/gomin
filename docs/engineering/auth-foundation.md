@@ -1,7 +1,7 @@
 # 공통 인증·DB 기반
 
 GOMIN-14의 공통 기반은 회원·세션·이메일 인증·약관 동의 스키마와 DB 함수,
-비밀번호·인증번호 암호화, 세션 검증·쿠키, 동일 출처 인증 프록시를 관리한다.
+비밀번호·인증번호 암호화, 세션 검증·쿠키, 브라우저의 직접 인증 API 호출을 관리한다.
 로그인과 회원가입은 이 기반에 각 기능의 API와 화면을 연결한다.
 
 ## 데이터베이스
@@ -36,16 +36,20 @@ GOMIN-14의 공통 기반은 회원·세션·이메일 인증·약관 동의 스
 | `backend/app/api/routes/sessions.py` | 현재 사용자 조회와 현재 기기 로그아웃 |
 | `backend/app/schemas/auth.py` | 공통 회원 응답 `MemberData` |
 | `frontend/src/components/auth-page.tsx` | 기능별 입력 폼을 받는 공통 인증 화면 |
-| `frontend/src/lib/auth-proxy.ts` | 허용한 인증 경로·메서드 중계와 세션 쿠키 전달 |
+| `frontend/src/lib/api.ts` | 백엔드 API 직접 호출과 인증 요청의 쿠키 포함 |
 
 `GET /api/v1/auth/me`는 유효한 세션의 회원을 반환하고 만료·쿠키를 갱신한다.
 `POST /api/v1/auth/logout`은 현재 세션과 쿠키를 제거한다.
 보호 API는 `app.auth.session.require_member`를 사용한다.
 로그인·회원가입 성공 응답의 쿠키는 같은 모듈의 `set_session_cookie`로 발급한다.
 
-브라우저는 `apiFetch`로 같은 출처의 `/api/v1/auth/*`를 호출한다.
-Next.js는 `gomin_session` 쿠키만 FastAPI로 전달하고 `Set-Cookie`를 돌려준다.
+브라우저는 `apiFetch`로 `NEXT_PUBLIC_API_BASE_URL`의 `/api/v1/auth/*`를 직접 호출하며
+`credentials: "include"`로 세션 쿠키를 전송하고 응답 쿠키를 저장한다. Next.js 중계 경로는 사용하지 않는다.
 쿠키는 HttpOnly·SameSite=Lax·Path=/이며 원문 토큰은 DB에 저장하지 않는다.
+쿠키의 Domain을 지정하지 않으므로 백엔드 호스트에 저장된다. 운영에서는 프론트와 API를
+같은 상위 도메인의 HTTPS 출처(예: `https://www.example.com`, `https://api.example.com`)로 제공한다.
+백엔드는 `CORS_ORIGINS`에 등록한 프론트 출처에 대해 쿠키 포함 요청을 허용한다.
+로컬에서도 프론트와 API의 호스트를 모두 `127.0.0.1` 또는 모두 `localhost`로 맞춘다.
 
 ## 설정과 검증
 

@@ -26,7 +26,9 @@ export function PageShell({ page, children, contentClassName = "" }: { page: Pag
         </Link>
         {config.navigation !== "none" ? <SiteMenu /> : null}
       </header>
-      <main id="main-content" className={`page-content ${contentClassName}`} tabIndex={-1}>{children}</main>
+      <main id="main-content" className={`page-content ${contentClassName}`} tabIndex={-1}>
+        {children}
+      </main>
     </div>
   );
 }

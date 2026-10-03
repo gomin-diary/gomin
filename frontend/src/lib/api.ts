@@ -49,15 +49,15 @@ function invalidResponse(status: number): ApiRequestError {
 /** JSON APIs only. T describes data; it does not validate endpoint data at runtime. */
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const authRequest = path.startsWith("/api/v1/auth/");
-  if (!authRequest && !apiBaseUrl) throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured");
+  if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured");
   if (!path.startsWith("/") || path.startsWith("//")) {
     throw new Error("API paths must start with a single slash");
   }
 
   let response: Response;
   try {
-    const url = authRequest ? path : `${apiBaseUrl!.replace(/\/$/, "")}${path}`;
-    response = await fetch(url, { ...init, cache: "no-store", ...(authRequest ? { credentials: "same-origin" } : {}) });
+    const url = `${apiBaseUrl.replace(/\/$/, "")}${path}`;
+    response = await fetch(url, { ...init, cache: "no-store", ...(authRequest ? { credentials: "include" } : {}) });
   } catch (error) {
     if (isAbort(error)) throw error;
     throw new ApiRequestError(null, {

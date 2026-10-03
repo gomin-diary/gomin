@@ -4,7 +4,7 @@ export const navigationItems = [
   { href: "/collection", label: "컬렉션", icon: "collection" },
 ] as const;
 
-export type PageId = "home" | "guide" | "collection" | "login" | "signup" | "talk";
+export type PageId = "home" | "guide" | "collection" | "login" | "signup" | "talk" | "settings";
 type Background = { asset: string; width: number; height: number };
 const desktop = (asset: string): Background => ({ asset, width: 2560, height: 1440 });
 const mobile = (asset: string): Background => ({ asset, width: 1440, height: 3120 });
@@ -23,4 +23,5 @@ export const sharedPages: Record<PageId, {
   login: { title: "로그인", ...authBackgrounds, navigation: "desktop" },
   signup: { title: "회원가입", ...authBackgrounds, navigation: "desktop" },
   talk: { title: "대화", desktop: desktop("talk-desktop"), mobile: mobile("talk-mobile"), navigation: "none" },
+  settings: { title: "설정", desktop: desktop("login-desktop"), mobile: null, mobileColor: "#fffefa", navigation: "both" },
 };

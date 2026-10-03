@@ -1,0 +1,102 @@
+# 이메일 로그인과 세션
+
+[GOMIN-16](https://younkim.atlassian.net/browse/GOMIN-16), GOMIN-24~26과
+[기본 인증 ERD](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1572868)의
+로그인 범위를 구현한다. FastAPI가 비밀번호와 세션을 검증하고 Supabase는 저장에만
+사용한다. 회원·세션·이메일 인증·동의 테이블과 DB 함수는
+[GOMIN-14 공통 인증·DB 기반](auth-foundation.md)을 사용한다. 로그인 API는
+공통 세션 의존성과 쿠키 발급을 재사용한다. 가입된 계정이 아직
+없으면 로그인할 수 없다. 기본 계정이나 우회 가입 API는 제공하지 않는다.
+
+## API와 저장
+
+| API | 동작 |
+| --- | --- |
+| `POST /api/v1/auth/login` | 이메일·비밀번호 검증 후 독립 세션과 사용자 정보 반환 |
+| `GET /api/v1/auth/me` | 현재 세션 검증·7일 만료 갱신 후 사용자 정보 반환 |
+| `POST /api/v1/auth/logout` | 현재 세션 행과 쿠키 삭제; 다른 세션 유지 |
+
+공통 성공 응답의 사용자 데이터는 `id`, `email`, `name`이다. 토큰은 JSON에 포함하지
+않고 `gomin_session` 쿠키로 전달한다. 미가입 이메일·비밀번호 불일치는 HTTP 401,
+`INVALID_CREDENTIALS`, “이메일 또는 비밀번호를 확인해 주세요.”로 동일하게 처리한다.
+유효하지 않은 세션은 401 `UNAUTHORIZED`, DB 이용 실패는 503이다.
+
+이메일은 앞뒤 공백 제거 후 소문자로 비교한다. 비밀번호 공백은 보존한다.
+`app/auth/security.py`의 scrypt는 무작위 16바이트 salt, N=32768, r=8, p=3,
+32바이트 해시를 사용하며 알고리즘·파라미터·salt를 함께 저장한다.
+[OWASP의 scrypt 설정](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)을 따른다.
+회원가입 구현도 같은 `hash_password`를 사용해야 한다. 미가입 이메일에도 더미 해시를
+검증하며 비밀번호 계산은 이벤트 루프 밖에서 수행한다.
+
+세션 토큰은 32바이트 난수이며 DB에는 SHA-256 digest만 저장한다. 생성·갱신은 DB
+시간을 기준으로 7일을 설정한다. 갱신 RPC는 행 잠금 후 만료를 검사하고 기존 행만
+UPDATE한다. 로그아웃과 경합해도 삭제된 세션을 INSERT·UPSERT로 복원하지 않는다.
+테이블은 RLS를 켜고 Data API 테이블·함수 권한을 `service_role`에만 부여한다.
+보호 API를 추가할 때는 `app.auth.session.require_member` 의존성으로 회원을 검사해야 한다.
+
+## 쿠키와 호출 경로
+
+브라우저는 `NEXT_PUBLIC_API_BASE_URL`의 FastAPI `/api/v1/auth/*`를 직접 호출한다.
+`apiFetch`는 인증 요청에 `credentials: "include"`를 사용한다. 프론트와 API는 같은 상위
+도메인의 HTTPS 주소를 사용하며, 백엔드는 등록된 프론트 출처의 쿠키 포함 CORS 요청을
+허용한다. 세션 쿠키는 API 호스트에 저장되며 Next.js 중계 경로는 사용하지 않는다.
+
+쿠키는 HttpOnly·SameSite=Lax·Path=/·Max-Age=604800이다.
+`AUTH_COOKIE_SECURE`는 기본 `true`이며 운영 HTTPS에서는 그대로 유지한다.
+로컬 HTTP에서만 `false`를 사용한다. 공통 로컬 실행기는 이를 자식 프로세스에
+전달하고 `.env.example`에도 로컬 값을 안내한다. 별도 CSRF 처리는 기존 결정대로 보류한다.
+
+## 화면
+
+로그인 폼은 필수 입력, 중복 제출 방지, 요청 중 표시, 서버·연결 오류와 성공 시 이동을
+처리한다. 기본 목적지는 홈이며 보호 화면 복귀 목적지는 `/`, `/talk`, `/collection`, `/settings`이다. 그 외 `next` 값은 홈으로 이동한다.
+회원가입·소셜 로그인·비밀번호 찾기는 기존 준비 안내를 유지한다.
+
+`AuthProvider`는 페이지 이동·창 포커스·화면 복귀·보이는 화면의 5분 간격마다
+현재 사용자를 확인한다. 사용자 정보는 메모리에만 보관한다. 홈·털어놓기·컬렉션·설정은
+확인된 로그인 상태에서 표시하고 401이면 로그인 화면으로 이동해 재인증을 안내한다.
+연결 오류는 로그아웃으로 단정하지 않고 재시도 화면을 표시한다. 이 클라이언트 화면
+가드는 업무 API 권한 검사를 대신하지 않는다.
+
+## 비로그인 접근 정책
+
+[GOMIN-16](https://younkim.atlassian.net/browse/GOMIN-16)의 서비스 화면 접근 정책이다.
+
+| 화면 | 경로 | 비로그인 접근 |
+| --- | --- | --- |
+| 가이드 | `/guide` | 허용 |
+| 로그인·회원가입 | `/login`, `/signup` | 인증을 위한 진입 화면으로 허용 |
+| 홈 | `/` | 로그인 필요 |
+| 컬렉션 | `/collection` | 로그인 필요 |
+| 털어놓기 | `/talk` | 로그인 필요 |
+| 설정 | `/settings` | 로그인 필요 |
+
+- 비로그인 사용자가 이용할 수 있는 서비스 화면은 가이드뿐이다. 신규 서비스 화면도 별도 공개 정책이 없으면 인증 가드를 적용한다.
+- 보호 화면은 직접 URL 접근·메뉴 선택·새로고침 모두 로그인 상태 확인 전 본문을 표시하지 않는다.
+- 세션이 없거나 만료되면 `/login?next=<요청 경로>&reason=auth`로 이동하고 로그인 후 원래 보호 화면으로 복귀한다.
+- 인증 조회 실패 시 보호 화면을 표시하지 않고 재시도를 제공한다. 실패를 비로그인으로 단정하지 않는다.
+- 로그아웃 성공 시 가이드로 이동한다. 실패 시 현재 화면과 세션 상태를 유지하고 재시도를 제공한다.
+- 서비스 데이터 API는 서버에서 세션과 사용자 권한을 별도로 검사해야 한다.
+
+PC 상단 프로필 메뉴는 로그인한 상태에서만 표시한다. 모바일 하단의 프로필 탭은 로그인·설정으로 연결하며, 설정에서 현재 세션 로그아웃을 수행한다. 상세 화면과 자산은 [공용 화면과 배경 매핑](../frontend/shared-ui.md)을 따른다.
+
+## 적용과 검증
+
+로컬 마이그레이션은 저장소 루트에서 `npm run db:migrate`로 적용한다.
+GOMIN-14의 `20261002000000_login_sessions.sql`과
+`20261002010000_signup_verification.sql`을 순서대로 적용한다. 실제 환경 파일이나 키 조회 출력은 검증에 사용하지 않는다.
+
+```sh
+PYTHONPATH=backend python -m unittest discover -s backend/tests -v
+npm --prefix frontend test
+npm --prefix frontend run lint
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+npm test
+```
+
+백엔드 인증 테스트는 모의 저장소로 정규화·동일 실패 안내·안전한 쿠키·독립 세션·갱신·
+만료·위조·삭제 후 재사용 거부·로그아웃·DB 실패와 비밀번호 해시를 확인한다.
+직접 호출로 전환하기 전, 로컬 모의 API와 프로덕션 빌드의 Next.js 중계를 사용한 브라우저 검증에서 데스크톱·390×844 모바일의 실패 안내·성공 이동·새로고침·보호 화면 복귀·로그아웃·서버 연결 실패 안내를 확인했다. 이 검증은 실제 PostgreSQL 적용·행 잠금 경합·운영 도메인 쿠키 검증을 대신하지 않는다. 로컬 DB가 실행 중이지 않아 마이그레이션은 적용하지 않았다.
+
+[문서 목록](../README.md)

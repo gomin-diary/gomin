@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from httpx import AsyncClient as AsyncHttpClient, Timeout
 
 from app.api.routes.health import router as health_router
+from app.api.routes.auth import router as auth_router
 from app.api.routes.sessions import router as sessions_router
 from app.api.routes.signup import router as signup_router
 from app.core.config import get_settings
@@ -27,7 +28,7 @@ register_exception_handlers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
@@ -35,4 +36,5 @@ app.add_middleware(
 app.include_router(health_router)
 
 app.include_router(sessions_router)
+app.include_router(auth_router)
 app.include_router(signup_router)

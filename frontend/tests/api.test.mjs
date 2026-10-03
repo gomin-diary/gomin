@@ -72,13 +72,22 @@ test("rejects paths that could escape the configured API base", async () => {
   }
 });
 
-test("auth requests use same-origin proxy and include cookies", async () => {
-  globalThis.fetch = async (url, init) => {
-    assert.equal(url, "/api/v1/auth/signup");
-    assert.equal(init.credentials, "same-origin");
-    assert.equal(init.cache, "no-store");
-    assert.equal(init.method, "POST");
-    return Response.json({ success: true, data: { id: "member-id" }, error: null }, { status: 201 });
-  };
-  assert.deepEqual(await apiFetch("/api/v1/auth/signup", { method: "POST" }), { id: "member-id" });
+test("all auth requests call the backend directly and include cookies", async () => {
+  for (const [action, method] of [
+    ["me", "GET"], ["login", "POST"], ["logout", "POST"], ["signup", "POST"],
+    ["email-verifications", "POST"], ["email-verifications/confirm", "POST"],
+  ]) {
+    const body = method === "POST" ? JSON.stringify({ email: "member@example.test" }) : undefined;
+    globalThis.fetch = async (url, init) => {
+      assert.equal(url, `https://api.example.test/api/v1/auth/${action}`);
+      assert.equal(init.credentials, "include");
+      assert.equal(init.cache, "no-store");
+      assert.equal(init.method, method);
+      assert.equal(init.body, body);
+      return Response.json({ success: true, data: { id: "member-id" }, error: null });
+    };
+    assert.deepEqual(await apiFetch(`/api/v1/auth/${action}`, {
+      method, body, credentials: "omit",
+    }), { id: "member-id" });
+  }
 });

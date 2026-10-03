@@ -6,6 +6,8 @@
 
 Frontend는 `frontend/`의 Next.js 애플리케이션입니다. `frontend/package.json`에 `build`, `start`, `lint`, `typecheck` 명령이 정의되어 있습니다. 공통 API 함수는 `NEXT_PUBLIC_API_BASE_URL`을 사용하며, 배포 시 Render API 주소를 설정합니다. `frontend/.env.example`의 루프백 주소는 로컬 개발용입니다. 서버 Secret 키를 `NEXT_PUBLIC_` 변수에 넣지 않습니다.
 
+공유 이미지의 절대 URL은 `NEXT_PUBLIC_SITE_URL`을 기준으로 생성한다. 커스텀 도메인을 사용하면 이 값을 실제 공개 출처(예: `https://your-domain.com`)로 설정하고 재빌드한다. 값이 없으면 Vercel의 `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL` 순서로 사용하며 로컬에서는 `http://localhost:3000`으로 폴백한다. 배포 후 페이지의 `og:image`가 공개 HTTPS 주소인지와 이미지 접근이 가능한지 확인한다.
+
 ## 백엔드 — Render와 Supabase Cloud
 
 Render의 Environment에 다음 값을 등록합니다. 프로젝트 URL과 Secret 키는 해당 Supabase Cloud 프로젝트의 Connect/API Keys 화면에서 확인합니다.
@@ -28,8 +30,9 @@ Supabase Cloud에서 Data API를 활성화하고 `public` 스키마를 노출해
 이메일 인증에 서버 전용 `AUTH_HMAC_KEY`(최소 32바이트의 독립 난수 키)가 필요하다.
 운영 HTTPS에서는 `AUTH_COOKIE_SECURE=true`를 사용한다. 약관 전문·프론트 버전과 서버의
 `AUTH_TERMS_VERSION`, `AUTH_PRIVACY_VERSION`을 함께 관리한다. 현재 기본 버전은 개발용
-초안 `dev-2026-10-02`이며 운영 적용 전에 전문·버전을 확정한다. 인증 API는 Next.js의
-동일 출처 프록시를 거쳐 HttpOnly·SameSite=Lax 쿠키를 프론트엔드 호스트에 설정한다.
+초안 `dev-2026-10-02`이며 운영 적용 전에 전문·버전을 확정한다. 인증 API는 브라우저에서
+백엔드로 직접 호출하며 HttpOnly·SameSite=Lax 쿠키를 API 호스트에 설정한다.
+프론트와 API는 같은 상위 도메인의 HTTPS 주소를 사용하며 쿠키 포함 CORS 요청을 허용한다.
 
 `20261002000000_login_sessions.sql`, `20261002010000_signup_verification.sql`도
 Supabase Cloud에 적용해야 한다. `supabase/seed.sql`의 로컬 테스트 계정은 운영에 적용하지 않는다.
@@ -73,7 +76,7 @@ Resend API 키는 발송 요청 인증에, 발신 도메인 검증은 해당 도
 2. 백엔드의 `GET /api/v1/health`가 HTTP 200과 `status: ok`를 반환하는지 확인한다.
 3. `GET /api/v1/health/db`가 HTTP 200과 `database: connected`를 반환하는지 확인한다. HTTP 503이면 Supabase 설정과 마이그레이션 적용 여부를 확인한다.
 4. 배포된 프론트엔드 출처에서 API 요청을 보내 CORS 허용 여부와 API 주소 설정을 확인한다. 홈 화면은 API를 자동 호출하지 않으므로 페이지 표시만으로 DB 연결 성공을 판단하지 않는다.
-5. 인증 API는 같은 출처의 Next.js 경로를 통해 중계한다. 운영 HTTPS에서 Secure·HttpOnly·SameSite=Lax 쿠키와 현재 사용자 조회·로그아웃을 확인한다. [공통 인증·DB 기반](../engineering/auth-foundation.md)을 따른다.
+5. 인증 API는 브라우저에서 `NEXT_PUBLIC_API_BASE_URL`의 백엔드로 직접 호출한다. 프론트와 API는 같은 상위 도메인의 HTTPS 주소를 사용하고, 백엔드 `CORS_ORIGINS`에는 실제 사용하는 프론트 출처를 모두 등록한다(예: `https://example.com`, `https://www.example.com`). 쿠키 포함 요청 허용과 API 호스트의 Secure·HttpOnly·SameSite=Lax 쿠키, 현재 사용자 조회·로그아웃을 확인한다. [공통 인증·DB 기반](../engineering/auth-foundation.md)을 따른다.
 
 배포 전 코드 검사는 [코딩과 검증 규칙](../engineering/coding-conventions.md)을 따른다.
 
