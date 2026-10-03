@@ -42,19 +42,10 @@
 
 후속 작업의 전용 이슈가 아직 없으면 기존 관련 작업에 연결하고 본문에 **전용 Jira 이슈 미등록·작업 분리안**임을 적는다. 임의 이슈 키를 만들거나 기존 이슈가 분리됐다고 기록하지 않는다. Jira 이슈 생성·Parent 변경·상태 전환은 별도 요청 범위로 다룬다.
 
-## 현재 Jira 구조
+## Jira 유형과 관계 확인
 
-2026-10-02에 GOMIN 프로젝트의 이슈 목록, 실제 Parent, 이슈 유형 메타데이터와 설계문서 DB를 조회한 기록이다. 작업을 시작할 때는 최신 값을 다시 확인한다. 보드·스프린트·상태 전환 규칙을 정의한 문서는 아니다.
-
-| 영역 / Epic | 확인된 직속 작업과 하위 구조 |
-| --- | --- |
-| [GOMIN-1 개발 환경 구축](https://younkim.atlassian.net/browse/GOMIN-1) | GOMIN-2~9 기술 기반 Task |
-| [GOMIN-10 공용 화면 기반 구축](https://younkim.atlassian.net/browse/GOMIN-10) | GOMIN-12 네비게이션 Story → 17·18, GOMIN-13 배경 Task → 19·20 |
-| [GOMIN-11 회원가입 및 로그인 제공](https://younkim.atlassian.net/browse/GOMIN-11) | GOMIN-14 공통 인증·세션 Task; GOMIN-15 회원가입 Story → 21·22·23; GOMIN-16 로그인 Story → 24·25·26; GOMIN-53 Resend 메일 발송 Task |
-| [GOMIN-27 컬렉션](https://younkim.atlassian.net/browse/GOMIN-27) | GOMIN-28 접근·개인 기록 Story → 31·32; GOMIN-29 저장 목록 Story → 33·34; GOMIN-30 상세 Story → 35·36 |
-| [GOMIN-52 털어놓기](https://younkim.atlassian.net/browse/GOMIN-52) | GOMIN-51 노트 유형 작업 |
-| [GOMIN-50 공통 API 응답 모델](https://younkim.atlassian.net/browse/GOMIN-50) | Task, 조회 당시 Parent 없음 |
-
-유형 선택은 [Jira 이슈 유형과 작업 분해 기준](jira-issue-guide.md)을 따른다. 실제 프로젝트 유형에서 `Subtask`(10034)는 `subtask=true`다. 이름이 비슷한 `하위 작업`(10039)은 `subtask=false`이므로 Subtask로 취급하지 않는다. `노트`(10040)도 별도 유형이다. 에픽(10035), 스토리(10036), 버그(10037), 작업(10038)은 `subtask=false`로 조회됐다. 이름만 보고 계층이나 유형을 변경하지 않는다.
+유형 선택은 [Jira 이슈 유형과 작업 분해 기준](jira-issue-guide.md)을 따른다.
+작업을 시작할 때 Jira의 현재 이슈 유형 메타데이터와 Parent 관계를 조회한다.
+이름이 비슷한 유형도 계층이 다를 수 있으므로 Subtask 여부는 `subtask` 값으로 확인하고, 이름만 보고 계층이나 유형을 변경하지 않는다.
 
 [문서 목록](../README.md)

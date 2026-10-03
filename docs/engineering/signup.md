@@ -61,10 +61,10 @@ RLS를 적용하고 Data API 권한과 RPC 실행을 서버의 `service_role`로
 - `AUTH_TERMS_VERSION`, `AUTH_PRIVACY_VERSION`: 기본 `dev-2026-10-02`.
 - 메일 설정은 [메일 발송](email-delivery.md), 배포는 [배포 안내](../deployment/README.md)를 따른다.
 
-사용자 허용에 따라 `frontend/src/content/legal.ts`에 두 개발용 초안을 작성했다.
-`/terms`, `/privacy`에서 전문과 버전을 열람하고 가입 화면에서 각각 동의한다.
-운영 적용 시 전문과 버전, 서버 설정을 함께 갱신한다. 초안 문구는 운영 주체·보유 기간·문의처가
-확정되지 않았음을 표시하며 확정된 운영 약관으로 취급하지 않는다.
+`frontend/src/content/legal.ts`에서 이용약관과 개인정보 수집·이용 동의의 개발용 초안을 관리한다.
+`/terms`, `/privacy`에서 전문과 버전을 열람하고 가입 화면에서 각각 동의한다. 전문 링크는 새 탭으로 열어 회원가입 상태를 유지한다.
+운영 적용 시 전문과 버전, 서버 설정을 함께 갱신한다. 운영 주체·보유 기간·문의처는
+확정되지 않은 상태이며 확정된 운영 약관으로 취급하지 않는다. 화면에는 개발용 초안 안내를 표시하지 않는다.
 
 [GOMIN-54~57 후속 정책](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1867777)은
 이번 구현에 포함하지 않는다. 실패 횟수·재발송 대기·발송량 제한, 허용 도메인과 추가
@@ -72,7 +72,7 @@ RLS를 적용하고 Data API 권한과 RPC 실행을 서버의 `service_role`로
 
 ## 로컬 데이터와 검증
 
-회원가입 변경과 함께 [로컬 계정 세 개](../local-development/test-users.md)를 seed로 제공한다.
+[로컬 계정 세 개](../local-development/test-users.md)를 seed로 제공한다.
 운영 마이그레이션에 테스트 계정을 넣지 않으며 기존 같은 이메일 회원은 덮어쓰지 않는다.
 
 ```sh
@@ -91,16 +91,11 @@ npm install --prefix /tmp/gomin-signup-db-test @electric-sql/pglite
 PGLITE_MODULE=/tmp/gomin-signup-db-test/node_modules/@electric-sql/pglite/dist/index.js node --test supabase/tests/signup.test.mjs
 ```
 
-직접 호출로 전환하기 전 2026-10-02 검증: 백엔드 60개, SQL 8개, 프론트 API·프록시 12개 테스트와 린트·타입·빌드 통과.
-SQL 검증은 만료·변조·이메일 연결·재사용 거부, 재발급 무효화·늦은 응답,
-트랜잭션 롤백, 세션 만료·삭제, 접근 권한과 seed 반복 적용·기존 계정 보존을 포함한다.
-실제 FastAPI와 Next.js를 임시 PostgreSQL 어댑터·테스트 메일 발송기에 연결해 브라우저 가입 후
-홈 이동과 중복 이메일 안내를 확인했다. HTTP 통합 검증은 가입 쿠키로 현재 사용자 조회·로그아웃,
-소비한 증표 재사용 거부와 더미 계정 3개의 로그인까지 통과했다. 화면은 PC 기본 뷰포트, 390×844, 320×568에서
-가로 넘침·입력·개별 동의·오류 안내를 확인했다.
+SQL 테스트는 증표의 만료·변조·이메일 연결·재사용 거부, 재발급 무효화·늦은 응답,
+트랜잭션 롤백, 세션 만료·삭제, 접근 권한과 seed 반복 적용·기존 계정 보존을 확인한다.
+브라우저에서는 이메일 인증·가입 후 홈 이동·중복 이메일 안내·입력·개별 동의·오류 안내를 별도로 확인한다.
 
-실제 로컬 Supabase·Cloud 적용, Resend 실제 메일 수신, 여러 DB 연결 사이의 동시 경합,
-운영 HTTPS 및 실제 모바일 기기는 미검증이다. PGlite의 단일 연결 테스트는 다중 연결
-행 잠금 경합을 대체하지 않는다.
+임시 PostgreSQL과 모의 메일 전송 테스트는 실제 Supabase 연결·메일 수신·운영 HTTPS 동작을 대신하지 않는다.
+PGlite의 단일 연결 테스트는 여러 연결 사이의 행 잠금 경합을 대체하지 않는다.
 
 [문서 목록](../README.md)

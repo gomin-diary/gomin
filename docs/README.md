@@ -34,7 +34,7 @@
 - [커밋 메시지 작성 규칙](engineering/commit-messages.md): 타입별 기준과 작성 예시
 - [PR 작성 규칙](engineering/pull-requests.md): Jira 작업 번호와 변경 내용·기능 테스트 범위
 - [Jira 이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
-- [설계문서 보관과 Jira 연결](engineering/design-document-storage.md): 로컬 제외 경로, Confluence 설계문서 DB 등록, 실제 Jira 구조
+- [설계문서 보관과 Jira 연결](engineering/design-document-storage.md): 로컬 제외 경로, Confluence 설계문서 DB 등록, Jira 유형·관계 확인
 
 ## 배포할 때
 
