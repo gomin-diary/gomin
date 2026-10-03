@@ -7,7 +7,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { useAuth } from "@/providers/auth-provider";
 
 export function DesktopAccount() {
-  const { member, error, refresh } = useAuth();
+  const { member } = useAuth();
   const details = useRef<HTMLDetailsElement>(null);
   const trigger = useRef<HTMLElement>(null);
 
@@ -19,9 +19,9 @@ export function DesktopAccount() {
     return () => document.removeEventListener("pointerdown", close);
   }, []);
 
+  if (!member) return null;
+
   const avatar = <Image src="/images/navigation/profile-character.png" width={78} height={78} alt="" />;
-  if (member === undefined) return <button className="desktop-account account-avatar" type="button" disabled={!error} aria-label={error ? "로그인 상태 다시 확인" : "로그인 상태 확인 중"} title={error || undefined} onClick={() => void refresh()}>{avatar}</button>;
-  if (!member) return <Link className="desktop-account account-avatar" href="/login" aria-label="로그인">{avatar}</Link>;
 
   return <details className="desktop-account" ref={details} onKeyDown={(event) => {
     if (event.key === "Escape" && details.current?.open) {
