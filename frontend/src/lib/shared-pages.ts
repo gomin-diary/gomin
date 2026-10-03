@@ -18,7 +18,7 @@ export const sharedPages: Record<PageId, {
   navigation: "both" | "desktop" | "none";
 }> = {
   home: { title: "홈", desktop: desktop("home-desktop"), mobile: mobile("home-mobile"), navigation: "both" },
-  guide: { title: "가이드", desktop: desktop("login-desktop"), mobile: null, mobileColor: "#ffffff", navigation: "both" },
+  guide: { title: "가이드", desktop: desktop("login-desktop"), mobile: null, mobileColor: "#fcfaf4", navigation: "both" },
   collection: { title: "컬렉션", desktop: desktop("collection-desktop"), mobile: null, mobileColor: "#0b0e0d", navigation: "both" },
   login: { title: "로그인", ...authBackgrounds, navigation: "desktop" },
   signup: { title: "회원가입", ...authBackgrounds, navigation: "desktop" },

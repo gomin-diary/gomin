@@ -7,6 +7,7 @@
 - [공통 인증·DB 기반](engineering/auth-foundation.md): 인증 4개 테이블·DB 함수, 암호화·세션·쿠키와 직접 API 호출
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
 - [인증 화면 디자인](frontend/auth-ui.md): 로그인·회원가입 화면, 입력 동작과 인증 API 연동 범위
+- [가이드 화면](frontend/guide-ui.md): 이용 단계, PC·모바일 배치와 Figma 일러스트 출처
 - [이메일 로그인과 세션](engineering/login-auth.md): 로그인 API·세션 쿠키·화면 연동과 검증
 - [로그인·회원가입 ERD 설계 초안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1572868): 기본 인증에 필요한 4개 테이블과 구현 작업 분리
 - [인증 정책 후속 작업](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1867777): 실패·발송 제한과 추가 입력 정책의 적용 범위
