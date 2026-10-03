@@ -17,7 +17,7 @@ export function LogoutButton() {
     pending.current = true;
     setBusy(true);
     setError("");
-    try { await logout(); router.replace("/"); }
+    try { await logout(); router.replace("/guide"); }
     catch { setError("로그아웃에 실패했어요. 다시 시도해 주세요."); }
     finally { pending.current = false; setBusy(false); }
   }

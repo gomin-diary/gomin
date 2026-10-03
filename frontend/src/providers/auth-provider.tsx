@@ -46,9 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ++version.current;
     await apiFetch<null>("/api/v1/auth/logout", { method: "POST" });
     ++version.current;
-    // Home logout has no pathname transition to trigger a session check.
-    // Protected pages wait for home navigation to avoid a login redirect race.
-    setMember(pathname === "/" ? null : undefined);
+    // Hide protected content until guide navigation to avoid an AuthGuard race.
+    // On the guide, no pathname transition will trigger another session check.
+    setMember(pathname === "/guide" ? null : undefined);
     setError("");
   }, [pathname]);
   const invalidate = useCallback(() => { ++version.current; }, []);
