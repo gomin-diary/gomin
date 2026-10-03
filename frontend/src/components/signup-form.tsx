@@ -75,7 +75,7 @@ export function SignupForm() {
     lock.current = true; setBusy("confirm"); setFailed(false);
     try {
       const result = await request<Proof>("email-verifications/confirm", { email, verification_id: verification.verification_id, code });
-      setProof(result); setCode(""); setNow(Date.now()); setNotice("이메일 인증이 완료됐어요. 30분 안에 가입을 완료해 주세요.");
+      setProof(result); setCode(""); setNow(Date.now()); setNotice("");
     } catch (error) { showError(error); }
     finally { lock.current = false; setBusy(""); }
   }
@@ -109,14 +109,13 @@ export function SignupForm() {
       <Field label="비밀번호 확인" icon="lock" name="confirmation" type="password" placeholder="비밀번호를 다시 입력해주세요." autoComplete="new-password" minLength={8} maxLength={1024} required value={confirmation} disabled={!!busy} aria-invalid={confirmationError} aria-describedby={confirmationError ? "confirmation-error" : undefined}
         onBlur={() => setConfirmationError(confirmation.length > 0 && password !== confirmation)} onChange={(event) => { setConfirmation(event.target.value); setConfirmationError(false); }} />
     </div>
-    {expiresAt ? <p className={styles.notice}>{expired ? "인증 시간이 만료됐어요. 이메일 인증을 다시 시작해 주세요." : `${proof ? "가입 완료까지" : "인증번호 유효시간"} ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`}</p> : null}
+    {expiresAt && (expired || !proof) ? <p className={styles.notice}>{expired ? "인증 시간이 만료됐어요. 이메일 인증을 다시 시작해 주세요." : `인증번호 유효시간 ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`}</p> : null}
     {proof && expired ? <button type="button" className={styles.outlineButton} onClick={resetVerification}>다시 인증하기</button> : null}
     {confirmationError ? <p id="confirmation-error" className={styles.error} role="alert">비밀번호가 일치하지 않아요. 다시 확인해주세요.</p> : null}
     {Object.entries(legalDocuments).map(([type, document]) => <div key={type} className={styles.consent}>
       <label><input type="checkbox" required disabled={!!busy} checked={consents[type as keyof typeof consents]} onChange={(event) => setConsents({ ...consents, [type]: event.target.checked })} /> {document.title}에 동의합니다. (필수)</label>
-      <Link href={document.href} target="_blank" rel="noopener noreferrer" aria-label={`${document.title} 전문 보기 (새 창)`}>전문 보기</Link>
+      <a href={document.href} target="_blank" rel="noopener noreferrer" aria-label={`${document.title} 전문 보기 (새 탭)`}>전문 보기</a>
     </div>)}
-    <p className={styles.draftNote}>약관은 개발용 초안입니다.</p>
     <button className={styles.primaryButton} type="submit" disabled={!!busy || !canSubmit}>{busy === "signup" ? "가입 중…" : "가입하기"}</button>
     <div className={styles.rule} />
     <div className={styles.switchAccount}><span>이미 계정이 있으신가요?</span><Link href="/login">로그인<span aria-hidden="true"> ›</span></Link></div>
