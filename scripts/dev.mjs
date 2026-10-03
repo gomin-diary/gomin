@@ -4,9 +4,11 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, open, readFile, unlink, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(import.meta.url);
 const stateDir = path.join(root, '.dev');
 const lockPath = path.join(stateDir, 'manager.lock');
 const guardPath = path.join(stateDir, 'manager.guard');
@@ -126,9 +128,109 @@ async function prepareLocalEnvironment(signal) {
 function checkPort(port) {
   return new Promise((resolve, reject) => {
     const server = createServer();
-    server.once('error', (error) => reject(new Error(`${port} 포트를 사용할 수 없습니다 (${error.code}). 해당 포트를 사용하는 서버를 직접 종료하세요.`)));
+    server.once('error', (error) => reject(Object.assign(new Error(`${port} 포트를 사용할 수 없습니다 (${error.code}). 해당 포트를 사용하는 서버를 직접 종료하세요.`), { code: error.code })));
     server.listen(port, '127.0.0.1', () => server.close(resolve));
   });
+}
+
+async function portAvailable(port) {
+  try { await checkPort(port); return true; }
+  catch (error) { if (error.code === 'EADDRINUSE') return false; throw error; }
+}
+
+function portCommand(command, args, signal) {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    execFile(command, args, { windowsHide: true, timeout: 6000, signal }, (error, stdout) => {
+      // lsof exits with 1 when the listener disappeared before the lookup.
+      if (error && !(command === 'lsof' && error.code === 1 && !stdout.trim())) {
+        reject(new Error(`${command} 실행 실패 (${error.code ?? '알 수 없음'}). 포트 조회·종료 도구와 실행 권한을 확인하세요.`));
+      } else resolve(stdout);
+    });
+  });
+}
+
+async function releasePort(port, signal) {
+  signal.throwIfAborted();
+  if (await portAvailable(port)) return;
+  const output = windows
+    ? await portCommand('netstat', ['-ano'], signal)
+    : await portCommand('lsof', ['-nP', '-t', `-iTCP:${port}`, '-sTCP:LISTEN'], signal);
+  const pids = [...new Set((windows
+    ? output.split(/\r?\n/).flatMap((line) => {
+      const columns = line.trim().split(/\s+/);
+      return columns[0] === 'TCP' && columns[1].endsWith(`:${port}`) && columns[3] === 'LISTENING' ? [Number(columns[4])] : [];
+    })
+    : output.trim().split(/\s+/).map(Number))
+    .filter((pid) => Number.isSafeInteger(pid) && pid > 0))];
+  signal.throwIfAborted();
+  if (pids.includes(process.pid)) throw new Error(`${port} 포트를 실행기 자체가 사용하고 있어 종료할 수 없습니다.`);
+  if (pids.length === 0) {
+    if (await portAvailable(port)) return;
+    throw new Error(`${port} 포트를 점유한 프로세스를 찾지 못했습니다. 실행 권한을 확인하거나 직접 종료하세요.`);
+  }
+  await stopExternalProcesses(pids, `${port} 포트`, () => portAvailable(port), signal);
+}
+
+async function stopExternalProcesses(pids, label, released, signal) {
+  if (pids.includes(process.pid)) throw new Error(`${label}을 실행기 자체가 사용하고 있어 종료할 수 없습니다.`);
+  console.log(`${label}을 점유한 프로세스를 종료합니다 (PID: ${pids.join(', ')}).`);
+  for (const pid of pids) {
+    signal.throwIfAborted();
+    if (!isAlive(pid)) continue;
+    if (windows) {
+      try { await portCommand('taskkill', ['/PID', String(pid), '/T', '/F'], signal); }
+      catch (error) { if (isAlive(pid)) throw error; }
+    } else {
+      try { process.kill(pid, 'SIGTERM'); }
+      catch (error) { if (error.code !== 'ESRCH') throw new Error(`프로세스 ${pid} 종료 실패 (${error.code}). 실행 권한을 확인하세요.`); }
+    }
+  }
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    signal.throwIfAborted();
+    if (await released()) return;
+    await sleep(50);
+  }
+  if (!windows) {
+    for (const pid of pids) {
+      signal.throwIfAborted();
+      if (!isAlive(pid)) continue;
+      try { process.kill(pid, 'SIGKILL'); }
+      catch (error) { if (error.code !== 'ESRCH') throw new Error(`프로세스 ${pid} 강제 종료 실패 (${error.code}). 실행 권한을 확인하세요.`); }
+    }
+  }
+  const killDeadline = Date.now() + 1000;
+  while (Date.now() < killDeadline) {
+    signal.throwIfAborted();
+    if (await released()) return;
+    await sleep(50);
+  }
+  throw new Error(`${label}이 해제되지 않았습니다. 해당 서버를 직접 종료하세요.`);
+}
+
+async function releaseFrontendLock(signal) {
+  const lockPath = path.join(root, 'frontend', '.next', 'dev', 'lock');
+  if (!await exists(lockPath)) return;
+  signal.throwIfAborted();
+  const nextDist = path.join(root, 'frontend', 'node_modules', 'next', 'dist');
+  const { loadBindings } = require(path.join(nextDist, 'build', 'swc', 'index.js'));
+  const { Lockfile } = require(path.join(nextDist, 'build', 'lockfile.js'));
+  await loadBindings();
+  const released = async () => {
+    if (!await exists(lockPath)) return true;
+    // Probe the OS lock instead of trusting a stale PID or deleting the file.
+    const lock = Lockfile.tryAcquire(lockPath, false);
+    if (!lock) return false;
+    await lock.unlock();
+    return true;
+  };
+  if (await released()) return;
+  const info = JSON.parse(await readFile(lockPath, 'utf8'));
+  if (!Number.isSafeInteger(info.pid) || info.pid <= 0 || !isAlive(info.pid)) {
+    throw new Error('Next.js 개발 잠금을 가진 프로세스를 확인할 수 없습니다. 기존 개발 서버를 직접 종료하세요.');
+  }
+  await stopExternalProcesses([info.pid], 'Next.js 개발 잠금', released, signal);
 }
 
 async function restartServers(requested, processes, signal) {
@@ -153,7 +255,8 @@ async function restartServers(requested, processes, signal) {
     await stopProcess(processes[name]);
     delete processes[name];
   }
-  for (const name of names) await checkPort(name === 'frontend' ? 3000 : 8000);
+  if (names.includes('frontend')) await releaseFrontendLock(signal);
+  for (const name of names) await releasePort(name === 'frontend' ? 3000 : 8000, signal);
   const started = [];
   try {
     for (const name of names) {
