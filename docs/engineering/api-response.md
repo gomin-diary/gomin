@@ -137,4 +137,6 @@ npm --prefix frontend run typecheck
 
 프론트 테스트는 TypeScript 직접 실행을 지원하는 Node.js 24를 사용한다. 백엔드 테스트는 정상 200·DB 실패 503·입력 실패 422·HTTP 401 헤더·404·안전한 500·500 CORS·OpenAPI를 검증한다. 프론트 테스트는 성공 데이터, 서버 오류, 잘못된 응답, 네트워크 실패, 취소와 경로 검사를 검증한다. 모의 DB 테스트는 실제 Supabase 연결이나 배포 환경 검증을 대신하지 않는다.
 
+공통 세션·쿠키·DB와 인증 화면의 연결점은 [공통 인증·DB 기반](auth-foundation.md)을 따른다.
+
 [문서 목록](../README.md)

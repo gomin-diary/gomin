@@ -6,16 +6,6 @@ const { apiFetch } = await import("../src/lib/api.ts");
 const originalFetch = globalThis.fetch;
 after(() => { globalThis.fetch = originalFetch; });
 
-test("auth uses the same-origin proxy with cookie credentials and no cache", async () => {
-  globalThis.fetch = async (url, init) => {
-    assert.equal(url, "/api/v1/auth/me");
-    assert.equal(init.credentials, "same-origin");
-    assert.equal(init.cache, "no-store");
-    return Response.json({ success: true, data: { id: "test" }, error: null });
-  };
-  await apiFetch("/api/v1/auth/me");
-});
-
 function respond(body, status = 200) {
   globalThis.fetch = async () => Response.json(body, { status });
 }
@@ -80,4 +70,15 @@ test("rejects paths that could escape the configured API base", async () => {
   for (const path of ["https://example.test/", "//example.test/", "relative"]) {
     await assert.rejects(apiFetch(path), /single slash/);
   }
+});
+
+test("auth requests use same-origin proxy and include cookies", async () => {
+  globalThis.fetch = async (url, init) => {
+    assert.equal(url, "/api/v1/auth/signup");
+    assert.equal(init.credentials, "same-origin");
+    assert.equal(init.cache, "no-store");
+    assert.equal(init.method, "POST");
+    return Response.json({ success: true, data: { id: "member-id" }, error: null }, { status: 201 });
+  };
+  assert.deepEqual(await apiFetch("/api/v1/auth/signup", { method: "POST" }), { id: "member-id" });
 });

@@ -5,7 +5,9 @@ from uuid import uuid4
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.routes.auth import COOKIE_NAME, get_auth_repository, get_auth_settings, router
+from app.api.routes.auth import router
+from app.api.routes.sessions import router as sessions_router
+from app.auth.session import COOKIE_NAME, get_auth_repository, get_auth_settings
 from app.auth.security import hash_password, token_digest, verify_password
 from app.core.config import Settings
 from app.core.errors import AppError
@@ -57,6 +59,7 @@ class AuthTests(unittest.TestCase):
         self.app = FastAPI(responses=ERROR_RESPONSES)
         register_exception_handlers(self.app)
         self.app.include_router(router)
+        self.app.include_router(sessions_router)
         self.app.dependency_overrides[get_auth_repository] = lambda: self.repository
         self.app.dependency_overrides[get_auth_settings] = lambda: self.settings
         self.client = TestClient(self.app, raise_server_exceptions=False)

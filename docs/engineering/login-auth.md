@@ -3,8 +3,9 @@
 [GOMIN-16](https://younkim.atlassian.net/browse/GOMIN-16), GOMIN-24~26과
 [기본 인증 ERD](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1572868)의
 로그인 범위를 구현한다. FastAPI가 비밀번호와 세션을 검증하고 Supabase는 저장에만
-사용한다. 이번 변경은 `members`, `auth_sessions`만 추가하며 이메일 인증·회원가입,
-동의 기록과 로그인 실패 제한은 해당 후속 작업에서 구현한다. 가입된 계정이 아직
+사용한다. 회원·세션·이메일 인증·동의 테이블과 DB 함수는
+[GOMIN-14 공통 인증·DB 기반](auth-foundation.md)을 사용한다. 로그인 API는
+공통 세션 의존성과 쿠키 발급을 재사용한다. 가입된 계정이 아직
 없으면 로그인할 수 없다. 기본 계정이나 우회 가입 API는 제공하지 않는다.
 
 ## API와 저장
@@ -31,7 +32,7 @@
 시간을 기준으로 7일을 설정한다. 갱신 RPC는 행 잠금 후 만료를 검사하고 기존 행만
 UPDATE한다. 로그아웃과 경합해도 삭제된 세션을 INSERT·UPSERT로 복원하지 않는다.
 테이블은 RLS를 켜고 Data API 테이블·함수 권한을 `service_role`에만 부여한다.
-보호 API를 추가할 때는 `require_member` 의존성으로 회원을 검사해야 한다.
+보호 API를 추가할 때는 `app.auth.session.require_member` 의존성으로 회원을 검사해야 한다.
 
 ## 쿠키와 호출 경로
 
@@ -61,8 +62,8 @@ Next.js는 `NEXT_PUBLIC_API_BASE_URL`을 API 목적지로 사용하며 인증 �
 ## 적용과 검증
 
 로컬 마이그레이션은 저장소 루트에서 `npm run db:migrate`로 적용한다.
-`20261002000000_login_sessions.sql`은 가입 기능이 사용할 회원 테이블과 로그인
-세션 테이블·RPC를 추가한다. 실제 환경 파일이나 키 조회 출력은 검증에 사용하지 않는다.
+GOMIN-14의 `20261002000000_login_sessions.sql`과
+`20261002010000_signup_verification.sql`을 순서대로 적용한다. 실제 환경 파일이나 키 조회 출력은 검증에 사용하지 않는다.
 
 ```sh
 PYTHONPATH=backend python -m unittest discover -s backend/tests -v

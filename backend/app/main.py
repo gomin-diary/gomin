@@ -7,6 +7,7 @@ from httpx import AsyncClient as AsyncHttpClient, Timeout
 
 from app.api.routes.health import router as health_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.sessions import router as sessions_router
 from app.core.config import get_settings
 from app.core.exception_handlers import ERROR_RESPONSES, register_exception_handlers
 from app.db.client import create_supabase_client
@@ -32,4 +33,6 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+
+app.include_router(sessions_router)
 app.include_router(auth_router)
