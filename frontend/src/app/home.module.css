@@ -1,0 +1,162 @@
+@font-face {
+  font-family: "Home Gaegu";
+  src: url("/fonts/Gaegu-Regular-home.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Home Gaegu";
+  src: url("/fonts/Gaegu-Bold-home.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Home Noto Sans KR";
+  src: url("/fonts/NotoSansKR-home.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+.content {
+  display: block;
+  padding: 0;
+  color: #fffdf2;
+  font-family: "Home Gaegu", sans-serif;
+  overflow: hidden;
+  container-type: size;
+}
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  min-height: 0;
+  height: 100%;
+  padding: max(24px, calc((100dvh - var(--header-height)) * 0.2438)) 4vw 24px 17.5%;
+}
+
+.intro { position: relative; }
+.intro::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -3vw -2.5vw -5vw -5.2vw;
+  border-radius: 50%;
+  background: rgb(46 43 26 / 65%);
+  filter: blur(2.78vw);
+  pointer-events: none;
+}
+.intro h1 {
+  margin: 0;
+  font-size: min(clamp(34px, 3.333333vw, 85px), 18cqh);
+  font-weight: 400;
+  line-height: 1.21;
+  overflow-wrap: normal;
+}
+.intro p {
+  margin: 1.29vw 0 0;
+  font-size: min(clamp(20px, 1.944444vw, 50px), 9cqh);
+  line-height: 1.29;
+}
+.cta {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 1.11vw, 28px);
+  width: clamp(242px, 16.805556vw, 430px);
+  min-height: clamp(58px, 4.027778vw, 103px);
+  margin-top: 1.52vw;
+  border: 2px solid #fffefa;
+  border-radius: 999px;
+  background: #355c51;
+  color: #fffefa;
+  font-size: clamp(22px, 1.527778vw, 40px);
+  font-weight: 700;
+  font-family: "Home Noto Sans KR", sans-serif;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+.cta:hover { background: #294f46; }
+.cta:focus-visible, .illustratedMenu a:focus-visible { outline-color: #fffefa; }
+.cta img { flex-shrink: 0; }
+.memo {
+  position: absolute;
+  right: 1.5%;
+  bottom: 14%;
+  width: 15.15%;
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+.memo img { display: block; width: 100%; height: auto; }
+.illustratedMenu { display: none; }
+.actions { display: contents; }
+
+@media (max-width: 767px) {
+  .content { padding: 0 !important; }
+  .hero {
+    display: grid;
+    justify-content: stretch;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto;
+    align-items: stretch;
+    height: 100%;
+    padding: min(12cqh, 18vw) 9.75vw 16px;
+    gap: 8px;
+    background: linear-gradient(180deg, transparent, rgb(25 32 21 / 20%) 22%, transparent 64%, rgb(25 32 21 / 28%));
+  }
+  .intro::before { display: none; }
+  .intro h1 { font-size: min(10.77vw, 8.7cqh); line-height: 1.23; text-shadow: 0 2px 12px rgb(25 32 21 / 32%); }
+  .intro p { margin-top: min(5.9vw, 3cqh); font-size: min(6.92vw, 5.5cqh); line-height: 1.3; text-shadow: 0 2px 12px rgb(25 32 21 / 40%); }
+  .illustratedMenu {
+    display: flex;
+    grid-row: 3;
+    justify-content: center;
+    gap: 6px;
+    margin-inline: auto;
+  }
+  .illustratedMenu a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: min(16.24vw, 96px);
+    text-decoration: none;
+    color: #f5f0de;
+    font-family: "Home Noto Sans KR", sans-serif;
+    font-size: max(12px, min(4.1vw, 2.6cqh));
+    font-weight: 700;
+    line-height: 1.4;
+    text-shadow: 0 1px 3px #192015, 0 2px 6px #192015;
+  }
+  .shortcutIllustration { position: relative; display: grid; place-items: center; width: min(16.24vw, 12cqh, 96px); aspect-ratio: 4 / 3; }
+  .illustratedMenu img { display: block; width: 100%; height: auto; filter: drop-shadow(0 1px 1px #183c2d) drop-shadow(0 0 1px #183c2d); }
+  .shortcutIllustration .profileIcon { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .actions { display: contents; }
+  .cta { grid-row: 4; justify-self: center; width: 86.5%; min-height: clamp(44px, 6.32vw, 54px); margin-top: 0; font-size: clamp(18px, 5.2vw, 30px); gap: 16px; }
+  .memo { position: absolute; right: 4%; bottom: 24%; width: 18%; transform: rotate(-14deg); }
+}
+
+@media (min-width: 768px) and (max-height: 600px) {
+  .hero { padding-top: 8cqh; }
+}
+
+@media (max-width: 767px) and (max-height: 500px) and (orientation: landscape) {
+  .hero { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto; padding: 16px 6vw; gap: 12px 24px; }
+  .intro { grid-row: 1 / -1; }
+  .intro h1 { font-size: min(5vw, 12cqh); }
+  .intro p { margin-top: 10px; font-size: min(3.4vw, 8cqh); }
+  .illustratedMenu { grid-row: 1; grid-column: 2; align-self: end; }
+  .illustratedMenu a { font-size: 14px; }
+  .shortcutIllustration { width: min(9vw, 20cqh); }
+  .cta { grid-row: 2; grid-column: 2; width: 100%; }
+  .memo { right: 4%; bottom: 58%; width: 12%; }
+  .cta { font-size: 20px; gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta { transition: none; }
+}
