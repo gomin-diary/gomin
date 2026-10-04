@@ -2,6 +2,14 @@ import type { ApiError, ApiResponse, ErrorDetail } from "./api-types";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+// Capture the session generation before sending a request so a late 401 cannot
+// invalidate a newer login. Auth endpoints handle their own failures.
+const authFailureListeners = new Set<() => () => void>();
+export function subscribeAuthFailure(capture: () => () => void): () => void {
+  authFailureListeners.add(capture);
+  return () => { authFailureListeners.delete(capture); };
+}
+
 export class ApiRequestError extends Error {
   readonly status: number | null;
   readonly code: string;
@@ -49,6 +57,8 @@ function invalidResponse(status: number): ApiRequestError {
 /** JSON APIs only. T describes data; it does not validate endpoint data at runtime. */
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const authRequest = path.startsWith("/api/v1/auth/");
+  const protectedRequest = path.startsWith("/api/v1/") && !authRequest;
+  const notifyUnauthorized = protectedRequest ? [...authFailureListeners].map((capture) => capture()) : [];
   if (!apiBaseUrl) throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured");
   if (!path.startsWith("/") || path.startsWith("//")) {
     throw new Error("API paths must start with a single slash");
@@ -57,7 +67,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   let response: Response;
   try {
     const url = `${apiBaseUrl.replace(/\/$/, "")}${path}`;
-    response = await fetch(url, { ...init, cache: "no-store", ...(authRequest ? { credentials: "include" } : {}) });
+    response = await fetch(url, { ...init, cache: "no-store", ...(authRequest || protectedRequest ? { credentials: "include" } : {}) });
   } catch (error) {
     if (isAbort(error)) throw error;
     throw new ApiRequestError(null, {
@@ -66,6 +76,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   }
 
   let body: unknown;
+  if (response.status === 401) notifyUnauthorized.forEach((notify) => notify());
   try {
     body = await response.json();
   } catch (error) {

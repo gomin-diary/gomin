@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
 process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test/";
-const { apiFetch } = await import("../src/lib/api.ts");
+const { apiFetch, subscribeAuthFailure } = await import("../src/lib/api.ts");
 const originalFetch = globalThis.fetch;
 after(() => { globalThis.fetch = originalFetch; });
 
@@ -90,4 +90,39 @@ test("all auth requests call the backend directly and include cookies", async ()
       method, body, credentials: "omit",
     }), { id: "member-id" });
   }
+});
+
+test("protected APIs include cookies and notify even on malformed 401", async () => {
+  let notifications = 0;
+  const unsubscribe = subscribeAuthFailure(() => () => { notifications++; });
+  try {
+    globalThis.fetch = async (_url, init) => {
+      assert.equal(init.credentials, "include");
+      return new Response("unauthorized", { status: 401 });
+    };
+    await assert.rejects(apiFetch("/api/v1/collection", { credentials: "omit" }));
+    assert.equal(notifications, 1);
+    respond({ success: false, data: null, error: { code: "UNAVAILABLE", message: "Unavailable", details: [] } }, 503);
+    await assert.rejects(apiFetch("/api/v1/collection"));
+    assert.equal(notifications, 1);
+    respond({ success: false, data: null, error: { code: "INVALID_CREDENTIALS", message: "Wrong password", details: [] } }, 401);
+    await assert.rejects(apiFetch("/api/v1/auth/login", { method: "POST" }));
+    assert.equal(notifications, 1);
+  } finally { unsubscribe(); }
+});
+
+test("protected failure captures session generation at request start", async () => {
+  let generation = 0, notifications = 0, finish;
+  const unsubscribe = subscribeAuthFailure(() => {
+    const current = generation;
+    return () => { if (current === generation) notifications++; };
+  });
+  try {
+    globalThis.fetch = () => new Promise((resolve) => { finish = resolve; });
+    const request = apiFetch("/api/v1/collection");
+    generation++;
+    finish(new Response(null, { status: 401 }));
+    await assert.rejects(request);
+    assert.equal(notifications, 0);
+  } finally { unsubscribe(); }
 });

@@ -13,7 +13,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   const dismissToast = useUiStore((state) => state.dismissToast);
   const notification = useRef<{ key: string; id: number } | null>(null);
   useEffect(() => {
-    if (member) {
+    if (member && !error) {
       if (notification.current) dismissToast(notification.current.id);
       notification.current = null;
       return;

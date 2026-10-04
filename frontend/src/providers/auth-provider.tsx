@@ -1,10 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { apiFetch, ApiRequestError } from "@/lib/api";
+import { apiFetch, ApiRequestError, subscribeAuthFailure } from "@/lib/api";
+import { createAuthSession, type Member } from "@/lib/auth-session";
 
-export type Member = { id: string; email: string; name: string };
+export type { Member } from "@/lib/auth-session";
 type AuthContextValue = {
   member: Member | null | undefined;
   error: string;
@@ -15,59 +16,45 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [member, setMember] = useState<Member | null>();
-  const [error, setError] = useState("");
-  const version = useRef(0);
+  const [session] = useState(() => createAuthSession(
+    () => apiFetch<Member>("/api/v1/auth/me"),
+    (error) => error instanceof ApiRequestError && error.status === 401,
+  ));
+  const { member, error } = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getServerSnapshot);
   const pathname = usePathname();
-  const refresh = useCallback(async () => {
-    const current = ++version.current;
-    try {
-      const result = await apiFetch<Member>("/api/v1/auth/me");
-      if (current !== version.current) return;
-      setMember(result);
-      setError("");
-    } catch (cause) {
-      if (current !== version.current) return;
-      if (cause instanceof ApiRequestError && cause.status === 401) {
-        setMember(null);
-        setError("");
-      } else {
-        setMember(undefined);
-        setError("로그인 상태를 확인할 수 없어요. 연결을 확인하고 다시 시도해 주세요.");
-      }
-    }
-  }, []);
+  const loggedOut = useRef(false);
   const acceptLogin = useCallback((value: Member) => {
-    ++version.current;
-    setMember(value);
-    setError("");
-  }, []);
+    loggedOut.current = false;
+    session.accept(value);
+  }, [session]);
   const logout = useCallback(async () => {
-    ++version.current;
+    session.invalidate();
     await apiFetch<null>("/api/v1/auth/logout", { method: "POST" });
-    ++version.current;
+    loggedOut.current = true;
     // Hide protected content until guide navigation to avoid an AuthGuard race.
-    // On the guide, no pathname transition will trigger another session check.
-    setMember(pathname === "/guide" ? null : undefined);
-    setError("");
-  }, [pathname]);
-  const invalidate = useCallback(() => { ++version.current; }, []);
+    session.accept(pathname === "/guide" ? null : undefined);
+  }, [pathname, session]);
   useEffect(() => {
-    const initial = window.setTimeout(() => void refresh(), 0);
-    const check = () => { if (document.visibilityState === "visible") void refresh(); };
+    if (loggedOut.current && pathname === "/guide") {
+      loggedOut.current = false;
+      session.accept(null);
+    }
+  }, [pathname, session]);
+  useEffect(() => {
+    const unsubscribe = subscribeAuthFailure(session.captureUnauthorized);
+    const initial = window.setTimeout(() => void session.recheck(), 0);
+    const check = () => { if (document.visibilityState === "visible") void session.recheck(); };
     window.addEventListener("focus", check);
     document.addEventListener("visibilitychange", check);
-    // Check expiration on return to a page, navigation, and while using the app.
-    const timer = window.setInterval(check, 5 * 60 * 1000);
     return () => {
-      invalidate();
+      unsubscribe();
+      session.invalidate();
       window.clearTimeout(initial);
       window.removeEventListener("focus", check);
       document.removeEventListener("visibilitychange", check);
-      window.clearInterval(timer);
     };
-  }, [pathname, refresh, invalidate]);
-  return <AuthContext.Provider value={{ member, error, refresh, acceptLogin, logout }}>{children}</AuthContext.Provider>;
+  }, [session]);
+  return <AuthContext.Provider value={{ member, error, refresh: session.refresh, acceptLogin, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
