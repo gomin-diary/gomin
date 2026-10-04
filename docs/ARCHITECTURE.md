@@ -61,14 +61,14 @@ docs/                           문서 인덱스와 시스템 아키텍처
 
 ```mermaid
 flowchart LR
-    Browser[브라우저] -->|페이지·동일 출처 인증 요청| Web[Next.js]
-    Web -->|인증 프록시·세션 쿠키| API[FastAPI / Uvicorn]
+    Browser[브라우저] -->|페이지| Web[Next.js]
+    Browser -->|API 요청·세션 쿠키| API[FastAPI / Uvicorn]
     Caller[API 호출자] -->|HTTP 요청| API[FastAPI / Uvicorn]
     API -->|Supabase Python SDK| DataAPI[Supabase Data API]
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
 ```
 
-프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 모든 API 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고 백엔드를 직접 호출한다. 인증 API에는 `credentials: "include"`로 쿠키를 포함하며 응답은 캐시하지 않는다.
+프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 모든 API 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고 백엔드를 직접 호출한다. `/api/v1/` 요청에는 `credentials: "include"`로 쿠키를 포함하며 HTTP 응답은 캐시하지 않는다. 화면의 로그인 상태는 메모리에 유지하고 필요한 시점에 재확인한다. 상세 흐름은 [이메일 로그인과 세션](engineering/login-auth.md)을 따른다.
 
 JSON API는 `{ success, data, error }` 공통 응답 구조를 사용한다. 성공 시 `data`와 `error: null`, 실패 시 `data: null`과 오류 코드·문구·필드별 오류를 반환한다. HTTP 상태 코드는 유지한다. 프론트의 `apiFetch<T>()`는 공통 구조를 검사하고 성공 데이터를 반환하며, 실패는 `ApiRequestError`로 전달한다. 상세 규격과 적용 방법은 [공통 API 응답 모델](engineering/api-response.md)을 따른다.
 
