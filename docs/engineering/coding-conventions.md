@@ -15,14 +15,7 @@
 
 ## 데이터베이스 변경
 
-DB 변경은 `supabase/migrations/`의 SQL 파일로 관리한다. 저장소 루트에서 마이그레이션을 생성한 뒤 SQL을 작성하고 로컬 DB에 적용한다.
-
-```sh
-npm run db:migration:new -- 이름
-npm run db:migrate
-```
-
-Data API로 사용할 테이블에는 필요한 `service_role` 권한을 마이그레이션에서 부여한다. 여러 환경에 적용할 변경을 로컬 DB에서만 수동으로 수정하지 않는다.
+DB 변경은 작업 브랜치에서 `supabase/migrations/`의 새 SQL로 관리한다. 이미 공유하거나 적용한 파일은 보존한다. 작성·권한 설정·로컬과 PR 검증·운영 적용·실패 처리는 [Supabase 마이그레이션 관리](database-migrations.md)를 따른다.
 
 ## 변경 검증
 

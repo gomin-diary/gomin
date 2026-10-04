@@ -1,0 +1,41 @@
+name: Supabase migration check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/supabase-migrations-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Install pinned Supabase CLI
+        run: npm ci
+      - name: Start disposable PostgreSQL
+        run: npx --no-install supabase db start
+      - name: Apply migrations to an empty database
+        run: npx --no-install supabase db reset --local --no-seed
+      - name: Verify no pending local migrations
+        run: npm run db:migrate
+      - name: Stop disposable database
+        if: always()
+        run: npx --no-install supabase stop --no-backup
