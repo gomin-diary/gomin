@@ -10,6 +10,7 @@
 - [로컬 테스트 사용자](local-development/test-users.md): 회원가입과 함께 제공하는 더미 계정 3개와 seed 적용
 - [인증 화면 디자인](frontend/auth-ui.md): 로그인·회원가입 화면, 입력 동작과 인증 API 연동 범위
 - [가이드 화면](frontend/guide-ui.md): 이용 단계, PC·모바일 배치와 Figma 일러스트 출처
+- [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [이메일 로그인과 세션](engineering/login-auth.md): 로그인 API·세션 쿠키·화면 연동과 검증
 - [로그인·회원가입 ERD 설계 초안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1572868): 기본 인증에 필요한 4개 테이블과 구현 작업 분리
 - [인증 정책 후속 작업](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1867777): 실패·발송 제한과 추가 입력 정책의 적용 범위
