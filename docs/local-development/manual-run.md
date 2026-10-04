@@ -14,7 +14,7 @@ npm run supabase:start
 
 서비스 주소와 수동 실행에 필요한 환경변수는 [환경변수와 로컬 서비스](environment.md)를 참고하세요. 설정을 마친 뒤 각 서버를 실행합니다.
 
-기존 로컬 DB를 사용 중이면 저장소 루트에서 `npm run db:migrate`로 상태 확인용 DB 함수를 추가합니다. 처음 Supabase를 시작하면 마이그레이션이 자동 적용됩니다.
+기존 로컬 DB를 사용 중이면 저장소 루트에서 `npm run db:migrate`로 미적용 마이그레이션을 적용합니다. 처음 Supabase를 시작하면 마이그레이션이 자동 적용됩니다. DB 변경 절차는 [Supabase 마이그레이션 관리](../engineering/database-migrations.md)를 따릅니다.
 
 ## 2. 백엔드 — 별도 터미널
 
