@@ -37,6 +37,7 @@ PostgreSQL 주소는 DB 관리 도구용입니다. 앱은 Supabase Data API로 �
 - 프론트엔드에는 `NEXT_PUBLIC_API_BASE_URL`을 설정한다. 값을 바꾼 뒤 개발 서버를 다시 실행한다. 인증 API는 쿠키를 포함해 직접 호출하므로 프론트와 API의 호스트를 모두 `127.0.0.1` 또는 모두 `localhost`로 맞춘다. 기본 API 설정을 사용하면 프론트도 `http://127.0.0.1:3000`으로 접속한다.
 - 메일 제공자는 `MAIL_PROVIDER`로 선택한다. `resend`가 기본이며 Resend 메일 발송에는 백엔드의 `RESEND_API_KEY`와 검증된 발신 주소 `RESEND_FROM_EMAIL`을 설정한다. SMTP를 선택하면 기존 `SMTP_*` 설정을 사용한다. [이메일 발송 안내](../engineering/email-delivery.md)에서 설정 항목과 호출 방법을 확인한다.
 - 회원가입 이메일 인증에는 서버 전용 `AUTH_HMAC_KEY`(최소 32바이트의 독립 난수 키)가 필요하다. 로컬 HTTP에서는 `AUTH_COOKIE_SECURE=false`를 사용하고 약관 버전은 프론트 문서와 맞춘다. [회원가입 구현 안내](../engineering/signup.md)의 설정을 따른다.
+- Google 로그인에는 `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `AUTH_OAUTH_ENCRYPTION_KEY`를 백엔드에 설정한다. 기본 `AUTH_FRONTEND_ORIGIN`은 `http://127.0.0.1:3000`, `GOOGLE_OAUTH_REDIRECT_URI`는 `http://127.0.0.1:8000/api/v1/auth/google/callback`이며 Google Cloud 클라이언트에 같은 콜백을 등록한다. localhost를 사용하면 프론트 접속·API 주소·Origin·CORS·콜백을 모두 localhost로 바꾼다. [Google OAuth 관리 문서](../engineering/google-oauth-flow.md)의 설정 표를 따른다.
 - 로컬 키 확인은 개발자가 자신의 터미널에서 수행하고 출력은 공유하지 않는다. AI 에이전트는 키 조회 명령을 실행하거나 실제 환경 파일을 읽지 않는다.
 
 실행 순서는 [서버 개별 실행](manual-run.md), 스키마 변경 절차는 [코딩과 검증 규칙](../engineering/coding-conventions.md)을 참고한다.

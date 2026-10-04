@@ -12,8 +12,7 @@
 - [가이드 화면](frontend/guide-ui.md): 이용 단계, PC·모바일 배치와 Figma 일러스트 출처
 - [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [이메일 로그인과 세션](engineering/login-auth.md): 로그인 API·세션 쿠키·화면 연동과 검증
-- [로그인·회원가입 ERD 설계 초안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1572868): 기본 인증에 필요한 4개 테이블과 구현 작업 분리
-- [인증 정책 후속 작업](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/1867777): 실패·발송 제한과 추가 입력 정책의 적용 범위
+- [Google OAuth 흐름 관리](engineering/google-oauth-flow.md): 인증 호출 순서·상태 수명·화면 복귀·예외 처리의 관리 기준
 
 ## 처음 설치할 때
 

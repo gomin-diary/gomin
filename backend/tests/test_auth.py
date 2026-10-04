@@ -73,6 +73,7 @@ class AuthTests(unittest.TestCase):
     def test_normalized_login_uses_digest_and_safe_cookie(self):
         response = self.login(email="  MEMBER@EXAMPLE.TEST  ")
         self.assertEqual(response.status_code, 200)
+
         self.assertEqual(response.json()["data"]["name"], "테스트")
         self.assertNotIn("password", response.text)
         cookie = response.headers["set-cookie"]
@@ -84,6 +85,17 @@ class AuthTests(unittest.TestCase):
         self.assertIn(token_digest(token), self.repository.sessions)
         self.assertNotIn(token, self.repository.sessions)
         self.assertEqual(self.client.get("/api/v1/auth/me").status_code, 200)
+
+    def test_google_only_member_cannot_password_login(self):
+        original = self.repository.member['password_hash']
+        try:
+            self.repository.member['password_hash'] = None
+            response = self.login()
+            self.assertEqual(response.status_code, 401)
+            self.assertEqual(response.json()['error']['code'], 'INVALID_CREDENTIALS')
+            self.assertNotIn('set-cookie', response.headers)
+        finally:
+            self.repository.member['password_hash'] = original
 
     def test_https_secure_is_default(self):
         self.settings.auth_cookie_secure = True

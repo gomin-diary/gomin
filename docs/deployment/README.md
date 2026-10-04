@@ -42,6 +42,26 @@ SQL 작성·로컬과 PR 검증·GitHub Secrets 설정·운영 적용·실패 �
 Supabase Cloud에 적용해야 한다. `supabase/seed.sql`의 로컬 테스트 계정은 운영에 적용하지 않는다.
 API·데이터 동작과 검증 범위는 [회원가입 구현](../engineering/signup.md)을 따른다.
 
+## Google OAuth 설정
+
+| 설정 이름 | 설명 |
+| --- | --- |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google Cloud 웹 애플리케이션 클라이언트 ID |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | 백엔드 전용 클라이언트 비밀값 |
+| `GOOGLE_OAUTH_REDIRECT_URI` | 실제 API HTTPS 출처 + `/api/v1/auth/google/callback`. Google Cloud 등록 URI와 일치 |
+| `AUTH_FRONTEND_ORIGIN` | 실제 프론트 HTTPS 출처. 경로 없이 설정 |
+| `AUTH_OAUTH_ENCRYPTION_KEY` | `Fernet.generate_key()`로 생성한 독립 백엔드 키 |
+| `AUTH_COOKIE_SECURE` | `true` |
+| `CORS_ORIGINS` | `AUTH_FRONTEND_ORIGIN`을 포함하는 프론트 출처 목록 |
+| `NEXT_PUBLIC_API_BASE_URL` | Vercel에 등록할 실제 API HTTPS 출처 |
+
+- **쿠키:** 같은 상위 도메인의 HTTPS 프론트·API 사용.
+- **Google Cloud:** 동의 화면과 웹 클라이언트 설정. 테스트 상태이면 테스트 사용자 등록.
+- **DB:** 기존 인증 마이그레이션 후 `20261004102555_google_oauth.sql`, `20261004110048_google_oauth_completion.sql` 순서로 적용.
+- **로그:** 프록시·호스팅 access log에서 OAuth 콜백 쿼리 제외.
+- **확인:** 신규 가입·동일 이메일 자동 연결·기존 Google 로그인·취소·me 조회·로그아웃.
+- **관리:** [Google OAuth 흐름 관리](../engineering/google-oauth-flow.md)의 상태 수명·정리 기준 적용.
+
 ## 인증 메일 발송 설정
 
 Render Free 웹 서비스는 SMTP용 25·465·587번 포트의 outbound 연결을 차단하므로

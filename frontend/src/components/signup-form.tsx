@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { legalDocuments } from "@/content/legal";
+import { GoogleLoginButton } from "./google-login-button";
 import styles from "./auth-page.module.css";
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; icon: string; action?: ReactNode };
@@ -25,12 +26,12 @@ function Field({ label, icon, action, type, ...props }: FieldProps) {
 type Verification = { verification_id: string; expires_at: string };
 type Proof = { verification_proof: string; expires_at: string };
 
-export function SignupForm() {
+export function SignupForm({ initialNotice = "" }: { initialNotice?: string }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const lock = useRef(false);
   const [busy, setBusy] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(initialNotice);
   const [failed, setFailed] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -117,6 +118,8 @@ export function SignupForm() {
       <a href={document.href} target="_blank" rel="noopener noreferrer" aria-label={`${document.title} 전문 보기 (새 탭)`}>전문 보기</a>
     </div>)}
     <button className={styles.primaryButton} type="submit" disabled={!!busy || !canSubmit}>{busy === "signup" ? "가입 중…" : "가입하기"}</button>
+    <div className={styles.divider}><span>또는</span></div>
+    <GoogleLoginButton origin="/signup" disabled={!!busy} />
     <div className={styles.rule} />
     <div className={styles.switchAccount}><span>이미 계정이 있으신가요?</span><Link href="/login">로그인<span aria-hidden="true"> ›</span></Link></div>
     <div role={failed ? "alert" : "status"} aria-live="polite" className={notice ? failed ? styles.error : styles.notice : styles.srOnly}>{notice}</div>
