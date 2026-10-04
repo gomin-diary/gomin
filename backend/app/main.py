@@ -9,6 +9,8 @@ from app.api.routes.health import router as health_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.sessions import router as sessions_router
 from app.api.routes.signup import router as signup_router
+from app.api.routes.google_oauth import router as google_oauth_router
+from app.auth.google_provider import GoogleProvider
 from app.core.config import get_settings
 from app.core.exception_handlers import ERROR_RESPONSES, register_exception_handlers
 from app.db.client import create_supabase_client
@@ -20,6 +22,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     async with AsyncHttpClient(timeout=Timeout(10, connect=5)) as http_client:
         app.state.supabase = await create_supabase_client(settings, http_client)
+        app.state.google_provider = GoogleProvider(http_client, settings)
         yield
 
 
@@ -38,3 +41,5 @@ app.include_router(health_router)
 app.include_router(sessions_router)
 app.include_router(auth_router)
 app.include_router(signup_router)
+
+app.include_router(google_oauth_router)

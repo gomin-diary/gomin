@@ -8,7 +8,7 @@ GOMIN-14의 공통 기반은 회원·세션·이메일 인증·약관 동의 스
 
 | 테이블 | 역할 |
 | --- | --- |
-| `members` | 정규화한 이메일, 이름, 비밀번호 해시 |
+| `members` | 정규화한 이메일, 이름, 비밀번호 해시. Google 신규 회원의 해시는 NULL |
 | `auth_sessions` | 회원별 독립 세션 digest와 만료 시각 |
 | `email_verifications` | 인증번호 HMAC, 일회용 가입 증표 digest와 처리 상태 |
 | `member_consents` | 회원별 동의 유형·약관 버전·동의 시각 |

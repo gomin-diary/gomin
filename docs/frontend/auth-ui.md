@@ -13,7 +13,7 @@
 | PC 회원가입 | `84:1283` |
 | 모바일 회원가입 | `84:1284` |
 
-[Figma 원본](https://www.figma.com/design/t66NuRwO9mgwGbLTc2allQ?node-id=65-151)을 기준으로 구성한다. 로그인에는 소개 문구, 이메일·비밀번호 필드, 비밀번호 찾기, 로그인 버튼, Apple·Google·네이버 버튼과 회원가입 링크가 있다. 회원가입에는 이름·이메일·이메일 인증 요청·비밀번호·비밀번호 확인·약관 동의·가입 버튼과 로그인 링크가 있다. 인증번호 필드는 인증 요청 후 표시한다.
+[Figma 원본](https://www.figma.com/design/t66NuRwO9mgwGbLTc2allQ?node-id=65-151)을 기준으로 구성한다. 로그인에는 소개 문구, 이메일·비밀번호 필드, 비밀번호 찾기, 로그인 버튼, Google 버튼과 회원가입 링크가 있다. 회원가입에는 이름·이메일·이메일 인증 요청·비밀번호·비밀번호 확인·약관 동의·가입 버튼, Google 버튼과 로그인 링크가 있다. 인증번호 필드는 인증 요청 후 표시한다.
 
 소셜 아이콘 3개는 `Login / Supporting Components`의 원본 컴포넌트를 SVG로 내보냈다. 입력 아이콘 5개는 기존 `figma/signup/code.js`의 SVG 정의를 재사용한다. 배포 자산은 `frontend/public/images/auth/`에 있으며 실행 시 `figma/`를 참조하지 않는다. 모바일 인증 배경은 Figma `23:2`에서 가져온 AVIF/WebP 자산을 사용한다. 반응형 크기와 간격은 `auth-page.module.css`에 정의하고, 작은 화면에서는 입력 영역과 터치 대상의 사용성을 확보한다.
 
@@ -32,5 +32,14 @@
 `/signup`은 `SignupForm`을 `AuthPage`의 `children`으로 전달한다. 이메일 인증·일회용 증표·
 약관 동의·가입 API와 검증 범위는 [회원가입 구현](../engineering/signup.md)을 따른다.
 약관과 개인정보 전문은 `/terms`, `/privacy`에서 제공한다. 회원가입 화면의 전문 링크는 새 탭으로 열어 입력·인증 상태를 유지한다.
+
+## Google 인증 화면
+
+- **시작:** 로그인·회원가입의 `Google로 계속하기` 버튼. 시작·복귀 경로는 sessionStorage에 저장.
+- **결과:** `/auth/google/result`에서 me·pending API 확인 후 화면 이동. 연결 오류는 재시도 제공.
+- **가입 보완:** `/auth/google/signup`에서 고정 이메일·수정할 이름·필수 약관 두 건 표시.
+- **가입 완료:** 인증 상태 갱신 후 홈 이동.
+- **취소·실패:** 저장한 로그인·회원가입 화면으로 복귀. 안전한 오류 안내 표시.
+- **관리 기준:** [Google OAuth 흐름 관리](../engineering/google-oauth-flow.md).
 
 [문서 목록](../README.md)

@@ -24,7 +24,8 @@ FastAPI가 이메일·비밀번호와 세션을 검증하고 Supabase는 저장�
 32바이트 해시를 사용하며 알고리즘·파라미터·salt를 함께 저장한다.
 [OWASP의 scrypt 설정](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)을 따른다.
 회원가입 구현도 같은 `hash_password`를 사용해야 한다. 미가입 이메일에도 더미 해시를
-검증하며 비밀번호 계산은 이벤트 루프 밖에서 수행한다.
+검증하며 비밀번호 계산은 이벤트 루프 밖에서 수행한다. Google 신규 회원처럼 비밀번호
+해시가 NULL인 회원도 더미 해시를 검증한 뒤 `INVALID_CREDENTIALS`로 종료한다.
 
 세션 토큰은 32바이트 난수이며 DB에는 SHA-256 digest만 저장한다. 생성·갱신은 DB
 시간을 기준으로 7일을 설정한다. 갱신 RPC는 행 잠금 후 만료를 검사하고 기존 행만
@@ -48,7 +49,8 @@ UPDATE한다. 로그아웃과 경합해도 삭제된 세션을 INSERT·UPSERT로
 
 로그인 폼은 필수 입력, 중복 제출 방지, 요청 중 표시, 서버·연결 오류와 성공 시 이동을
 처리한다. 기본 목적지는 홈이며 보호 화면 복귀 목적지는 `/`, `/talk`, `/collection`, `/settings`이다. 그 외 `next` 값은 홈으로 이동한다.
-회원가입은 [회원가입 구현](signup.md)의 이메일 인증과 가입 흐름을 제공한다. 소셜 로그인·비밀번호 찾기는 준비 안내를 표시한다.
+회원가입은 [회원가입 구현](signup.md)의 이메일 인증과 가입 흐름을 제공한다. Google 로그인은
+[Google OAuth 흐름 관리](google-oauth-flow.md)를 따른다. 비밀번호 찾기는 준비 안내를 표시한다.
 
 `AuthProvider`는 최초 접속·새로고침에서 현재 사용자를 확인한다.
 로그인·회원가입 성공 응답으로 메모리의 사용자 상태를 갱신하며 페이지 이동에는 캐시를 사용한다.

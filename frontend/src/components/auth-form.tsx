@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useAuth, type Member } from "@/providers/auth-provider";
+import { GoogleLoginButton } from "./google-login-button";
 import styles from "./auth-page.module.css";
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -110,13 +111,7 @@ export function AuthForm({ mode, initialNotice = "" }: { mode: "login" | "signup
       {signup ? <div className={styles.rule} /> : (
         <>
           <div className={styles.divider}><span>또는</span></div>
-          <div className={styles.socialButtons}>
-            {([['apple', 'Apple'], ['google', 'Google'], ['naver', '네이버']] as const).map(([icon, name]) => (
-              <button key={icon} type="button" aria-label={`${name}로 로그인`} onClick={() => setNotice(`${name} 로그인 기능을 준비하고 있어요.`)}>
-                <Image src={`/images/auth/${icon}.svg`} width={40} height={40} alt="" />
-              </button>
-            ))}
-          </div>
+          <GoogleLoginButton origin="/login" disabled={submitting} />
         </>
       )}
       <div className={styles.switchAccount}>

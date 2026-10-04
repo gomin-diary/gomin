@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = True
     auth_terms_version: str = "dev-2026-10-02"
     auth_privacy_version: str = "dev-2026-10-02"
+    google_oauth_client_id: str = ''
+    google_oauth_client_secret: SecretStr = SecretStr('')
+    google_oauth_redirect_uri: str = ''
+    auth_frontend_origin: str = ''
+    auth_oauth_encryption_key: SecretStr = SecretStr('')
     mail_provider: Literal["resend", "smtp"] = "resend"
     resend_api_key: SecretStr = SecretStr("")
     resend_from_email: str = ""

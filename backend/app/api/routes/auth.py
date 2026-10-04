@@ -22,7 +22,7 @@ async def login(
 ) -> ApiSuccess[MemberData]:
     member = await repository.find_member(payload.email)
     valid = await run_in_threadpool(verify_password, payload.password.get_secret_value(),
-                                   member["password_hash"] if member else DUMMY_PASSWORD_HASH)
+                                   (member.get("password_hash") if member else None) or DUMMY_PASSWORD_HASH)
     if not valid or not member:
         raise AppError(401, "INVALID_CREDENTIALS", "이메일 또는 비밀번호를 확인해 주세요.")
     token = new_session_token()
