@@ -7,14 +7,17 @@ from app.core.config import Settings
 from app.core.errors import AppError
 from app.schemas.auth import MemberData
 from app.schemas.files import UploadUrlData, UploadUrlInput
-from app.schemas.response import ApiSuccess
+from app.schemas.response import ApiFailure, ApiSuccess
 from app.storage.dependencies import get_file_storage, get_storage_settings
 from app.storage.supabase import StorageSigningError, SupabaseFileStorage
 
 router = APIRouter(prefix="/api/v1/files", tags=["files"])
 
 
-@router.post("/upload-url", response_model=ApiSuccess[UploadUrlData])
+@router.post(
+    "/upload-url", response_model=ApiSuccess[UploadUrlData],
+    responses={413: {"model": ApiFailure, "description": "FILE_TOO_LARGE"}},
+)
 async def create_upload_url(
     payload: UploadUrlInput, request: Request, response: Response,
     member: Annotated[MemberData, Depends(require_member)],

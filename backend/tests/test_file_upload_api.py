@@ -114,3 +114,5 @@ class FileUploadApiTests(unittest.TestCase):
         operation = self.app.openapi()['paths']['/api/v1/files/upload-url']['post']
         self.assertIn('200', operation['responses'])
         self.assertIn('422', operation['responses'])
+        self.assertEqual(operation['responses']['413']['content']['application/json']['schema']['$ref'],
+                         '#/components/schemas/ApiFailure')
