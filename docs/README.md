@@ -13,6 +13,7 @@
 - [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [이메일 로그인과 세션](engineering/login-auth.md): 로그인 API·세션 쿠키·화면 연동과 검증
 - [Google OAuth 흐름 관리](engineering/google-oauth-flow.md): 인증 호출 순서·상태 수명·화면 복귀·예외 처리의 관리 기준
+- [Supabase Storage 직접 업로드](engineering/file-storage.md): 회원용 URL 발급 API·프론트 업로드 함수·비공개 버킷과 검증 경계
 
 ## 처음 설치할 때
 
@@ -36,6 +37,7 @@
 - [PR 작성 규칙](engineering/pull-requests.md): Jira 작업 번호와 변경 내용·기능 테스트 범위
 - [Jira 이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
 - [설계문서 보관과 Jira 연결](engineering/design-document-storage.md): 로컬 제외 경로, Confluence 설계문서 DB 등록, Jira 유형·관계 확인
+- [Supabase Storage 직접 업로드 설계](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3407874): GOMIN-76 URL 발급 API·프론트 업로드 함수 승인 설계
 
 ## 배포할 때
 

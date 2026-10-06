@@ -18,7 +18,7 @@
 
 Node.js 기본 버전은 `.nvmrc`에 지정한 24이며, Python은 3.12 이상을 사용한다. 앱 의존성은 `frontend/package.json`과 `backend/requirements.txt`에서 관리한다.
 
-Supabase Storage는 파일 저장, Upstash Redis는 캐시와 임시 데이터 저장을 위한 설계 대상이다. 두 서비스의 애플리케이션 연동은 현재 코드에 포함되어 있지 않다.
+Supabase Storage는 비공개 버킷의 Signed Upload URL을 발급하고 프론트엔드가 파일을 직접 업로드하는 데 사용한다. Upstash Redis는 캐시와 임시 데이터 저장을 위한 설계 대상이며 애플리케이션 연동은 현재 코드에 포함되어 있지 않다.
 
 ## 폴더 구조
 
@@ -39,6 +39,7 @@ backend/
     core/                       환경변수 설정, 공통 오류와 예외 처리
     db/                         Supabase 클라이언트 생성과 요청 의존성
     mail/                       공통 메일 인터페이스와 SMTP·Resend 구현
+    storage/                    Supabase Signed Upload URL 발급과 요청 의존성
     schemas/                    공통 응답·오류 및 API 데이터 모델
   tests/                        API 응답 계약·메일 발송·회원가입 테스트
 supabase/
@@ -66,6 +67,8 @@ flowchart LR
     Caller[API 호출자] -->|HTTP 요청| API[FastAPI / Uvicorn]
     API -->|Supabase Python SDK| DataAPI[Supabase Data API]
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
+    API -->|Signed Upload URL 발급| Storage[Supabase Storage]
+    Browser -->|Signed URL로 파일 PUT| Storage
 ```
 
 프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 모든 API 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고 백엔드를 직접 호출한다. `/api/v1/` 요청에는 `credentials: "include"`로 쿠키를 포함하며 HTTP 응답은 캐시하지 않는다. 화면의 로그인 상태는 메모리에 유지하고 필요한 시점에 재확인한다. 상세 흐름은 [이메일 로그인과 세션](engineering/login-auth.md)을 따른다.
@@ -100,6 +103,7 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 | `GET /api/v1/auth/me` | 현재 세션 검증·만료 갱신과 회원 조회 |
 | `POST /api/v1/auth/logout` | 현재 기기의 세션·쿠키 제거 |
 | `/api/v1/auth/...` | 이메일 인증·가입·현재 회원 조회·로그아웃. [회원가입 구현](engineering/signup.md)의 계약 참고 |
+| `POST /api/v1/files/upload-url` | 로그인 회원의 고유 저장 경로에 Signed Upload URL 발급 |
 
 DB 상태 확인 중 호출이 실패하거나 함수가 `true`를 반환하지 않으면 HTTP 503으로 응답한다. 상태 확인 API는 사용자별 업무 권한을 검사하지 않는다. 보호 API는 `app.auth.session.require_member`를 의존성으로 사용한다.
 
