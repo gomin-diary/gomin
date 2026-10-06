@@ -1,11 +1,4 @@
-import type { CollectionRecord, CollectionImage } from "./collection";
-
-// Public local seed member IDs only. Unknown members have an empty mock collection.
-export const collectionFixtureMembers = [
-  "00000000-0000-4000-8000-000000000001",
-  "00000000-0000-4000-8000-000000000002",
-  "00000000-0000-4000-8000-000000000003",
-] as const;
+import type { CollectionDetail, CollectionImage } from "./collection";
 // Exact reference-photo crops supplied by Figma 84:893–918, normalized to a 320×300 slot.
 const crops: CollectionImage[] = [
   { src: "/images/collection/reference.png", width: 2907.826 / 320, left: -252.17 / 320, top: -679.57 / 300 },
@@ -15,7 +8,7 @@ const crops: CollectionImage[] = [
   { src: "/images/collection/reference.png", width: 2972.444 / 320, left: -1955.56 / 320, top: -770.89 / 300 },
   { src: "/images/collection/reference.png", width: 2866.286 / 320, left: -2318.86 / 320, top: -725.14 / 300 },
 ];
-const stories: Omit<CollectionRecord, "id" | "memberId" | "image">[] = [
+const stories: Omit<CollectionDetail, "id" | "image">[] = [
   { date: "2025-08-28", title: "조금 더, 나답게", caption: "오늘도 조금씩, 나에게 가까워지는 중이에요.",
     mind: "새로운 환경이 아직은 낯설고 긴장되지만,\n잘 해내고 싶은 마음이 커요.\n조금 더 나답게, 천천히 적응하고 싶어요.",
     concerns: ["새로운 환경에 대한 긴장감", "잘 해낼 수 있을지에 대한 걱정", "나다운 모습을 잃지 않을까 하는 불안"],
@@ -41,13 +34,12 @@ const stories: Omit<CollectionRecord, "id" | "memberId" | "image">[] = [
     concerns: ["미래에 대한 고민", "나에게 맞는 속도 찾기", "오늘을 소중히 보내기"],
     emotions: ["기대", "걱정", "평온"], categories: ["불안", "일상"] },
 ];
-export const collectionFixtures: CollectionRecord[] = [
-  ...stories.map((story, index) => ({ ...story, image: crops[index], id: `local-1-${index + 1}`, memberId: collectionFixtureMembers[0] })),
+// Shared public demo content, independent of local seed accounts or production member IDs.
+export const collectionFixtures: CollectionDetail[] = [
+  ...stories.map((story, index) => ({ ...story, image: crops[index], id: `local-1-${index + 1}` })),
   ...stories.slice(0, 2).map((story, index) => ({
     ...story, title: index ? "내 속도로 걷기" : "작은 용기를 내본 날", date: `2025-09-${15 + index}`,
     mind: "오늘은 작은 용기를 내어 내 마음을 전했어요. 서두르지 않고 나만의 속도로 걸어가고 싶어요.",
-    image: crops[index], id: `local-1-${index + 7}`, memberId: collectionFixtureMembers[0],
+    image: crops[index], id: `local-1-${index + 7}`,
   })),
-  { ...stories[4], title: "함께여서 고마운 하루", image: crops[4], id: "local-2-1", memberId: collectionFixtureMembers[1] },
-  { ...stories[2], title: "잠시 쉬어가도 괜찮아", image: crops[2], id: "local-2-2", memberId: collectionFixtureMembers[1] },
 ];
