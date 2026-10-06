@@ -1,1 +1,1 @@
-"""Supabase Storage upload grants for trusted backend callers."""
+"""Server-side file storage with Supabase Storage."""

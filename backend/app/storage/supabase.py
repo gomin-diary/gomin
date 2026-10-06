@@ -1,26 +1,26 @@
-from dataclasses import dataclass, field
-from urllib.parse import parse_qs, urlsplit
-from uuid import UUID, uuid4
+from dataclasses import dataclass
+import re
+from uuid import uuid4
 
 import httpx
 from storage3.exceptions import StorageException
-from storage3.types import CreateSignedUploadUrlOptions
 from supabase import AsyncClient
 
 from app.core.config import Settings
 
 
-class StorageSigningError(Exception):
+CONTENT_TYPE = re.compile(r"[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+")
+
+
+class StorageUploadError(Exception):
     def __init__(self) -> None:
-        super().__init__("Unable to create a Storage upload URL")
+        super().__init__("Unable to store file")
 
 
 @dataclass(frozen=True)
-class SignedUpload:
+class StoredFile:
     bucket: str
     path: str
-    upload_url: str = field(repr=False)
-    expires_in: int = 7200
 
 
 class SupabaseFileStorage:
@@ -28,25 +28,26 @@ class SupabaseFileStorage:
         self.client = client
         self.settings = settings
 
-    async def create_upload_url(self, owner_id: UUID) -> SignedUpload:
-        """Grant creation-only access to a new owner path; this does not upload a file."""
-        if not isinstance(owner_id, UUID):
-            raise ValueError("A UUID owner is required")
+    async def upload(
+        self, data: bytes, *, content_type: str = "application/octet-stream",
+    ) -> StoredFile:
+        """Store bytes under a unique object path in an existing bucket."""
+        if not isinstance(data, bytes) or not data:
+            raise ValueError("Non-empty file bytes are required")
+        if len(data) > self.settings.storage_max_file_size_bytes:
+            raise ValueError("File exceeds the configured size limit")
+        if (not isinstance(content_type, str) or len(content_type) > 127
+                or not CONTENT_TYPE.fullmatch(content_type)):
+            raise ValueError("A MIME type without parameters is required")
         bucket = self.settings.storage_bucket
-        path = f"{owner_id}/{uuid4()}"
+        path = str(uuid4())
         try:
-            result = await self.client.storage.from_(bucket).create_signed_upload_url(
-                path, options=CreateSignedUploadUrlOptions(upsert="false"),
+            result = await self.client.storage.from_(bucket).upload(
+                path, data, file_options={"content-type": content_type.lower(), "upsert": "false"},
             )
-            upload_url = result['signed_url']
-            actual = urlsplit(upload_url)
-            base = urlsplit(str(self.settings.supabase_url))
-            expected_path = base.path.rstrip('/') + f'/storage/v1/object/upload/sign/{bucket}/{path}'
-            if (actual.scheme != base.scheme or actual.netloc != base.netloc
-                    or actual.path != expected_path or actual.fragment
-                    or not parse_qs(actual.query).get('token')):
-                raise ValueError("Invalid signed upload response")
+            if result.path != path or result.full_path != f"{bucket}/{path}":
+                raise ValueError("Invalid upload response")
         except (httpx.HTTPError, StorageException, ValueError, KeyError, TypeError, AttributeError):
-            # Provider error text and signed URLs may contain secrets. Never retry or chain them.
-            raise StorageSigningError() from None
-        return SignedUpload(bucket=bucket, path=path, upload_url=upload_url)
+            # Provider errors may contain credentials. Never retry or expose their text.
+            raise StorageUploadError() from None
+        return StoredFile(bucket=bucket, path=path)
