@@ -13,6 +13,7 @@
 - [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [이메일 로그인과 세션](engineering/login-auth.md): 로그인 API·세션 쿠키·화면 연동과 검증
 - [Google OAuth 흐름 관리](engineering/google-oauth-flow.md): 인증 호출 순서·상태 수명·화면 복귀·예외 처리의 관리 기준
+- [Supabase Storage 파일 저장 모듈](engineering/file-storage.md): Supabase 저장 모듈·의존성 주입·설정과 사용 방법
 
 ## 처음 설치할 때
 
@@ -33,9 +34,9 @@
 - [Supabase 마이그레이션 관리](engineering/database-migrations.md): SQL 작성·검토, 로컬·PR 검증, 운영 적용과 실패 처리
 - [SMTP·Resend 이메일 발송](engineering/email-delivery.md): 모듈 설정·호출과 발송 오류 처리
 - [커밋 메시지 작성 규칙](engineering/commit-messages.md): 타입별 기준과 작성 예시
-- [PR 작성 규칙](engineering/pull-requests.md): Jira 작업 번호와 변경 내용·기능 테스트 범위
-- [Jira 이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
-- [설계문서 보관과 Jira 연결](engineering/design-document-storage.md): 로컬 제외 경로, Confluence 설계문서 DB 등록, Jira 유형·관계 확인
+- [PR 작성 규칙](engineering/pull-requests.md): 관련 작업 번호와 변경 내용·기능 테스트 범위
+- [이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
+- [설계문서 보관 규칙](engineering/design-document-storage.md): 로컬 제외 경로, 공유 설계문서 등록과 관련 작업 연결
 
 ## 배포할 때
 
