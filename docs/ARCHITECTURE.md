@@ -12,13 +12,14 @@
 | 설정 관리 | Pydantic Settings | 백엔드 환경변수 로딩과 값 검증 |
 | 데이터 접근 | Supabase Python SDK · HTTPX | 비동기 Data API 호출과 HTTP 연결 재사용 |
 | 데이터베이스 | Supabase PostgreSQL | 데이터 저장과 SQL 함수 실행 |
+| 파일 저장 | Supabase Storage | 백엔드 공통 모듈을 통한 파일 바이트 저장 |
 | 웹 호스팅 | Vercel | Next.js 배포 대상 |
 | API 호스팅 | Render | FastAPI 배포 대상 |
 | 로컬 개발 | Node.js · npm · Supabase CLI · Docker | 의존성 설치와 개발 서버·로컬 Supabase 실행 |
 
 Node.js 기본 버전은 `.nvmrc`에 지정한 24이며, Python은 3.12 이상을 사용한다. 앱 의존성은 `frontend/package.json`과 `backend/requirements.txt`에서 관리한다.
 
-Supabase Storage는 파일 저장, Upstash Redis는 캐시와 임시 데이터 저장을 위한 설계 대상이다. 두 서비스의 애플리케이션 연동은 현재 코드에 포함되어 있지 않다.
+Supabase Storage는 백엔드의 공통 저장 모듈에서 파일을 저장하는 데 사용한다. Upstash Redis는 캐시와 임시 데이터 저장을 위한 설계 대상이며 애플리케이션 연동은 현재 코드에 포함되어 있지 않다.
 
 ## 폴더 구조
 
@@ -39,6 +40,7 @@ backend/
     core/                       환경변수 설정, 공통 오류와 예외 처리
     db/                         Supabase 클라이언트 생성과 요청 의존성
     mail/                       공통 메일 인터페이스와 SMTP·Resend 구현
+    storage/                    Supabase 파일 저장 모듈과 요청 의존성
     schemas/                    공통 응답·오류 및 API 데이터 모델
   tests/                        API 응답 계약·메일 발송·회원가입 테스트
 supabase/
@@ -66,6 +68,7 @@ flowchart LR
     Caller[API 호출자] -->|HTTP 요청| API[FastAPI / Uvicorn]
     API -->|Supabase Python SDK| DataAPI[Supabase Data API]
     DataAPI -->|SQL 함수 실행| DB[(PostgreSQL)]
+    API -->|저장 모듈·파일 바이트| Storage[Supabase Storage]
 ```
 
 프론트엔드에서 API를 호출할 때는 `src/lib/api.ts`의 `apiFetch`를 사용한다. 모든 API 요청 주소는 `NEXT_PUBLIC_API_BASE_URL`을 기준으로 만들고 백엔드를 직접 호출한다. `/api/v1/` 요청에는 `credentials: "include"`로 쿠키를 포함하며 HTTP 응답은 캐시하지 않는다. 화면의 로그인 상태는 메모리에 유지하고 필요한 시점에 재확인한다. 상세 흐름은 [이메일 로그인과 세션](engineering/login-auth.md)을 따른다.
@@ -92,6 +95,10 @@ FastAPI가 API 요청을 처리하고 Uvicorn이 서버를 실행한다. 앱이 
 `MAIL_PROVIDER` 설정으로 구현을 선택하며 기본값은 `resend`다.
 메일 모듈에는 인증번호 발급·검증과 회원가입 API를 포함하지 않으며, 호출하는 가입 라우터가 처리한다. 설정과 사용법은
 [SMTP·Resend 이메일 발송](engineering/email-delivery.md)에서 확인한다.
+
+`app/storage/`의 `SupabaseFileStorage.upload()`는 파일 바이트를 기존 Supabase 버킷에 저장한다.
+`dependencies.py`의 `get_file_storage()`로 공유 클라이언트와 설정을 주입한다.
+모듈과 호출 방법은 [Supabase Storage 파일 저장 모듈](engineering/file-storage.md)에서 확인한다.
 
 | API | 역할 |
 | --- | --- |
