@@ -1,6 +1,19 @@
-# Supabase Storage 직접 업로드
+# Supabase Storage 파일 업로드
 
-백엔드가 로그인 회원에게 Signed Upload URL을 발급하고 프론트엔드가 Supabase Storage에 파일을 직접 업로드한다. 파일 본문은 FastAPI를 거치지 않는다.
+파일 저장소는 **Supabase Storage**를 사용한다. 기본 저장 대상은 비공개 `gomin-files` 버킷이며 파일 크기 제한은 10MiB다.
+
+백엔드가 로그인 회원에게 Signed Upload URL을 발급하고 프론트엔드가 해당 URL로 파일을 직접 업로드한다. 파일 본문은 FastAPI를 거치지 않는다.
+
+## 사용하는 모듈
+
+| 구성 요소 | 모듈 | 역할 |
+| --- | --- | --- |
+| 백엔드 Storage | [backend/app/storage/supabase.py](../../backend/app/storage/supabase.py)의 `SupabaseFileStorage` | Supabase Python SDK의 `AsyncClient`로 회원별 객체 경로와 Signed Upload URL 생성 |
+| 백엔드 의존성 | [backend/app/storage/dependencies.py](../../backend/app/storage/dependencies.py)의 `get_file_storage` | 기존 공유 Supabase 클라이언트와 Storage 설정 주입 |
+| URL 발급 API | [backend/app/api/routes/files.py](../../backend/app/api/routes/files.py) | 세션·Origin·파일 정보 검사 후 업로드 URL 반환 |
+| 프론트 업로드 | [frontend/src/lib/storage.ts](../../frontend/src/lib/storage.ts)의 `uploadFile` | `apiFetch`로 URL을 발급받고 브라우저 `fetch`로 파일을 Storage에 PUT |
+
+프론트엔드는 공통 `uploadFile()` 함수와 브라우저 `fetch`를 사용한다. 업로드 권한은 백엔드가 발급한 URL로 전달된다.
 
 ## 흐름과 호출
 
@@ -95,7 +108,7 @@ Storage의 성공 응답 이후에만 반환하며 빈 파일은 요청 전에 �
 
 ## 유효 기간과 검증 경계
 
-Signed Upload URL은 **2시간 유효**하며 개별 TTL을 설정할 수 없다. 발급 이후 로그아웃해도 만료까지 사용할 수 있다. URL과 쿼리의 토큰은 업로드 권한이므로 로그·Jira·분석 도구에 저장하지 않는다.
+Signed Upload URL은 **2시간 유효**하며 개별 TTL을 설정할 수 없다. 발급 이후 로그아웃해도 만료까지 사용할 수 있다. URL과 쿼리의 토큰은 업로드 권한이므로 로그·문서·분석 도구에 저장하지 않는다.
 
 크기·MIME 요청값은 URL에 개별 서명되지 않는다. API는 신고한 크기를 검사하고, **실제 최대 크기는 버킷의 10MiB 제한**으로 강제한다. 신고값과 실제 크기의 일치, MIME 진위·파일 내용·원본 이름은 검증하지 않는다. 현재 버킷에는 MIME 허용 목록이 없다. 파일 종류를 제한하는 업무 기능에는 버킷 MIME 제한과 업로드 후 검증을 별도로 설계한다.
 
@@ -119,4 +132,4 @@ DB 테스트에는 로컬 Supabase DB 컨테이너와 Docker 접근 권한이 �
 
 실제 Storage HTTP 업로드·실제 파일 크기 거절·브라우저 CORS·Cloud 구성은 별도 통합 확인이 필요하다. 모의 HTTP·DB 검사로 운영 적용 완료를 판단하지 않는다.
 
-[GOMIN-76](https://younkim.atlassian.net/browse/GOMIN-76) · [승인 설계](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3407874) · [Supabase Signed Upload URL](https://supabase.com/docs/reference/python/storage-from-createsigneduploadurl) · [버킷 정책](https://supabase.com/docs/guides/storage/buckets/fundamentals) · [문서 목록](../README.md)
+[Supabase Signed Upload URL](https://supabase.com/docs/reference/python/storage-from-createsigneduploadurl) · [버킷 정책](https://supabase.com/docs/guides/storage/buckets/fundamentals) · [문서 목록](../README.md)
