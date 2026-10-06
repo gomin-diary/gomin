@@ -15,7 +15,6 @@ export type CollectionDetail = CollectionItem & {
   concerns: string[];
   emotions: string[];
 };
-export type CollectionRecord = CollectionDetail & { memberId: string };
 export type CollectionRepository = {
   list: (memberId: string, signal?: AbortSignal) => Promise<CollectionItem[]>;
   detail: (memberId: string, id: string, signal?: AbortSignal) => Promise<CollectionDetail>;
@@ -25,9 +24,9 @@ export class CollectionNotFoundError extends Error {
 }
 export type CollectionScenario = "normal" | "empty" | "error" | "detail-error" | "slow";
 
-/** A mock transport only. Production ownership must be enforced by the future server API. */
+/** Shared demo records for every signed-in member; future real records require server ownership checks. */
 export function createMockCollectionRepository(
-  records: readonly CollectionRecord[],
+  records: readonly CollectionDetail[],
   { scenario = "normal", delay = 250 }: { scenario?: CollectionScenario; delay?: number } = {},
 ): CollectionRepository {
   let failedList = false;
@@ -46,17 +45,15 @@ export function createMockCollectionRepository(
       await wait(signal);
       if (scenario === "error" && !failedList) { failedList = true; throw new Error("Mock list failure"); }
       if (!memberId || scenario === "empty") return [];
-      return records.filter((record) => record.memberId === memberId).map(({ id, date, title, image, categories }) =>
+      return records.map(({ id, date, title, image, categories }) =>
         structuredClone({ id, date, title, image, categories }));
     },
     async detail(memberId, id, signal) {
       await wait(signal);
-      const record = memberId && records.find((record) => record.id === id && record.memberId === memberId);
+      const record = memberId && records.find((record) => record.id === id);
       if (!record || scenario === "empty") throw new CollectionNotFoundError();
       if (scenario === "detail-error" && !failedDetail) { failedDetail = true; throw new Error("Mock detail failure"); }
-      const { memberId: _owner, ...detail } = record;
-      void _owner;
-      return structuredClone(detail);
+      return structuredClone(record);
     },
   };
 }
