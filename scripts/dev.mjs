@@ -241,6 +241,7 @@ async function restartServers(requested, processes, signal) {
   if (names.includes('frontend')) {
     const nextCli = path.join(root, 'frontend', 'node_modules', 'next', 'dist', 'bin', 'next');
     if (!await exists(nextCli)) throw new Error(`프론트엔드 의존성이 없습니다. ${setupHint}`);
+    await runCommand(process.execPath, [path.join(root, 'frontend', 'scripts', 'generate-docs.mjs')], { signal, label: '공개 문서 생성' });
     commands.frontend = [process.execPath, [nextCli, 'dev', '--hostname', '127.0.0.1', '--port', '3000']];
     environments.frontend = { ...process.env, NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:8000' };
   }

@@ -27,7 +27,7 @@
 해당 화면의 메모리에 유지한다. 로그인과 회원가입 간 이동은 Next.js Link를 사용한다.
 인증 API 호출은 `apiFetch`로 백엔드를 직접 호출하며 쿠키·세션 동작은
 [공통 인증·DB 기반](../engineering/auth-foundation.md)을 따른다.
-로그인 폼은 `AuthPage`의 `children`으로 전달한다. 로그인 필요 안내와 세션 조회 오류는 루트의 공용 토스트로 표시한다. 로그인 API·세션·검증 범위는
+로그인 폼은 `AuthPage`의 `children`으로 전달한다. 로그인 필요 안내와 세션 조회 오류는 서비스 레이아웃의 공용 토스트로 표시한다. 로그인 API·세션·검증 범위는
 [이메일 로그인과 세션](../engineering/login-auth.md)을 따른다.
 `/signup`은 `SignupForm`을 `AuthPage`의 `children`으로 전달한다. 이메일 인증·일회용 증표·
 약관 동의·가입 API와 검증 범위는 [회원가입 구현](../engineering/signup.md)을 따른다.

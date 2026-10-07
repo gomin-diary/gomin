@@ -6,6 +6,7 @@
 - [공통 API 응답 모델](engineering/api-response.md): 성공·오류 규격, 양쪽 모델과 호출·검증 방법
 - [공통 인증·DB 기반](engineering/auth-foundation.md): 인증 4개 테이블·DB 함수, 암호화·세션·쿠키와 직접 API 호출
 - [대화·컬렉션 ERD](engineering/conversation-collection-erd.md): 테이블·관계·제약조건, Supabase SQL과 ID 생성·재시도 관련 질문·답변
+- [공개 문서 화면](frontend/docs-ui.md): `/docs/` 공개 범위, 문서 생성·링크·레이아웃과 배포
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
 - [회원가입 구현](engineering/signup.md): 이메일 인증·일회용 증표·약관·세션 API와 검증 범위
 - [로컬 테스트 사용자](local-development/test-users.md): 회원가입과 함께 제공하는 더미 계정 3개와 seed 적용
@@ -39,6 +40,7 @@
 - [PR 작성 규칙](engineering/pull-requests.md): 관련 작업 번호와 변경 내용·기능 테스트 범위
 - [이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
 - [설계문서 보관 규칙](engineering/design-document-storage.md): 로컬 제외 경로, 공유 설계문서 등록과 관련 작업 연결
+- [공개 문서 영역 설계 — 검토안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3670018): 원본 Markdown을 유지하는 `/docs/` 공개 화면 설계
 
 ## 배포할 때
 

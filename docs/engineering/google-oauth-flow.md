@@ -1,7 +1,7 @@
 # Google OAuth 흐름 관리
 
 - **문서 범위:** Google OAuth 인증 흐름과 관리 기준.
-- **구현 경로:** `backend/app/api/routes/google_oauth.py`, `frontend/src/app/auth/google/`, `supabase/migrations/*_google_oauth*.sql`.
+- **구현 경로:** `backend/app/api/routes/google_oauth.py`, `frontend/src/app/(service)/auth/google/`, `supabase/migrations/*_google_oauth*.sql`.
 
 ## 담당 영역
 
