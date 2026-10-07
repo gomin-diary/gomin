@@ -22,14 +22,17 @@ function alive(pid) {
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), 'gomin dev test '));
   await cp(scripts, path.join(root, 'scripts'), { recursive: true });
-  for (const dir of ['.dev', 'frontend/node_modules/next/dist/bin', 'backend/.venv/bin', 'node_modules/.bin', 'node_modules/supabase/dist']) {
+  for (const dir of ['.dev', 'frontend/scripts', 'frontend/node_modules/next/dist/bin', 'backend/.venv/bin', 'node_modules/.bin', 'node_modules/supabase/dist']) {
     await mkdir(path.join(root, dir), { recursive: true });
   }
   const app = `import fs from 'node:fs';
 import path from 'node:path';
 const root = path.resolve(process.cwd(), '..');
-fs.appendFileSync(path.join(root, '.dev/starts'), JSON.stringify({ name: path.basename(process.cwd()), pid: process.pid }) + '\\n');
+fs.appendFileSync(path.join(root, '.dev/starts'), JSON.stringify({ name: path.basename(process.cwd()), pid: process.pid, docs: fs.existsSync(path.join(root, '.dev/docs-manifest')) ? fs.readFileSync(path.join(root, '.dev/docs-manifest'), 'utf8') : null }) + '\\n');
 setInterval(() => {}, 1000);\n`;
+  await writeFile(path.join(root, 'frontend/scripts/generate-docs.mjs'), `import fs from 'node:fs';
+if (fs.existsSync('.dev/fail-docs')) process.exit(1);
+fs.writeFileSync('.dev/docs-manifest', fs.existsSync('.dev/docs-source') ? fs.readFileSync('.dev/docs-source', 'utf8') : 'initial');`);
   await writeFile(path.join(root, 'frontend/node_modules/next/package.json'), '{"type":"module"}');
   await writeFile(path.join(root, 'frontend/node_modules/next/dist/bin/next'), app);
   const python = path.join(root, 'backend/.venv/bin/python');
@@ -75,6 +78,28 @@ Server.prototype.listen = function (port, ...args) { return listen.call(this, po
 }
 
 // Real child processes and control sockets exercise the manager, without Docker or application dependencies.
+test('frontend start and restart generate documents before starting Next', { skip: process.platform === 'win32' }, async (t) => {
+  const f = await fixture(t);
+  f.launch('frontend');
+  await until(async () => (await f.entries()).length === 1, 'frontend started');
+  assert.equal((await f.entries())[0].docs, 'initial');
+  await writeFile(path.join(f.root, '.dev/docs-source'), 'updated');
+  const request = f.launch('frontend');
+  await until(() => request.exitCode !== null, 'restart completed');
+  assert.equal(request.exitCode, 0, request.output);
+  await until(async () => (await f.entries()).length === 2, 'replacement started');
+  assert.equal((await f.entries())[1].docs, 'updated');
+});
+
+test('document generation failure prevents frontend startup', { skip: process.platform === 'win32' }, async (t) => {
+  const f = await fixture(t);
+  await writeFile(path.join(f.root, '.dev/fail-docs'), '1');
+  const manager = f.launch('frontend');
+  await until(() => manager.exitCode !== null, 'failed generation');
+  assert.equal(manager.exitCode, 1, manager.output);
+  assert.deepEqual(await f.entries(), []);
+});
+
 test('a failed restart returns a nonzero command exit code', { skip: process.platform === 'win32' }, async (t) => {
   const f = await fixture(t);
   const manager = f.launch('frontend');

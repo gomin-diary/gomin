@@ -1,6 +1,6 @@
 # 가이드 화면
 
-`/guide`는 고민일기 이용 흐름을 소개한다. `frontend/src/app/guide/page.tsx`가 콘텐츠를, `guide.module.css`가 반응형 배치를 관리한다. 기존 `PageShell`과 메뉴, 온글잎 콘콘체를 재사용한다.
+`/guide`는 고민일기 이용 흐름을 소개한다. `frontend/src/app/(service)/guide/page.tsx`가 콘텐츠를, `guide.module.css`가 반응형 배치를 관리한다. 기존 `PageShell`과 메뉴, 온글잎 콘콘체를 재사용한다.
 
 ## 디자인과 동작
 

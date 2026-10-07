@@ -27,7 +27,9 @@ Supabase Storage는 백엔드의 공통 저장 모듈에서 파일을 저장하�
 frontend/
   public/                       웹에서 제공하는 정적 이미지와 아이콘
   src/
-    app/                        페이지, 루트 레이아웃, 전역 스타일
+    app/                        공통 HTML·메타데이터와 기본 스타일
+      (service)/                서비스 페이지·Provider·서비스 스타일
+      docs/                     공개 문서 페이지·독립 레이아웃
     components/                 UI 컴포넌트
     providers/                  Zustand 스토어를 공유하는 Provider
     stores/                     UI 상태와 상태 변경 함수
@@ -77,7 +79,7 @@ JSON API는 `{ success, data, error }` 공통 응답 구조를 사용한다. 성
 
 ### 프론트엔드
 
-Next.js App Router가 페이지와 레이아웃을 구성한다. `UiStoreProvider`는 Zustand 스토어를 생성해 하위 컴포넌트에 제공하고, 컴포넌트는 `useUiStore`로 필요한 상태를 읽거나 변경한다. 데이터베이스 접근은 백엔드에서 처리한다.
+Next.js App Router가 페이지와 레이아웃을 구성한다. 서비스 Provider는 `(service)` 그룹 레이아웃에서 생성한다. `/docs/`는 루트 Markdown에서 생성한 정적 문서 영역으로 인증 Provider와 분리한다. 생성·공개 범위는 [공개 문서 화면](frontend/docs-ui.md)을 따른다. `UiStoreProvider`는 Zustand 스토어를 생성해 하위 컴포넌트에 제공하고, 컴포넌트는 `useUiStore`로 필요한 상태를 읽거나 변경한다. 데이터베이스 접근은 백엔드에서 처리한다.
 
 ### 백엔드
 

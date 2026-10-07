@@ -8,6 +8,18 @@ Frontend는 `frontend/`의 Next.js 애플리케이션입니다. `frontend/packag
 
 공유 이미지의 절대 URL은 `NEXT_PUBLIC_SITE_URL`을 기준으로 생성한다. 커스텀 도메인을 사용하면 이 값을 실제 공개 출처(예: `https://your-domain.com`)로 설정하고 재빌드한다. 값이 없으면 Vercel의 `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL` 순서로 사용하며 로컬에서는 `http://localhost:3000`으로 폴백한다. 배포 후 페이지의 `og:image`가 공개 HTTPS 주소인지와 이미지 접근이 가능한지 확인한다.
 
+### 공개 문서 빌드
+
+Root Directory는 `frontend`를 사용하며 **Include files outside the root directory in the Build Step**을 활성화한다. 빌드 전 문서 생성 스크립트가 루트 `docs/`와 `README.md`를 읽는다.
+
+`frontend/vercel.json`의 `ignoreCommand`는 다음 명령을 사용한다. 파일 설정이 대시보드의 Ignored Build Step을 대체한다. [Vercel 설정 문서](https://vercel.com/docs/project-configuration/vercel-json#ignorecommand)
+
+```sh
+git diff HEAD^ HEAD --quiet -- . ../docs ../README.md
+```
+
+프론트엔드·문서·루트 README 변경 시 빌드하며 그 외 변경만 있으면 생략한다. 문서 생성·공개 범위와 갱신 방법은 [공개 문서 화면](../frontend/docs-ui.md)을 따른다. 배포 후 `/docs/`와 상세 문서를 비로그인 상태에서 열고 문서 변경 반영과 검색 제외 메타데이터를 확인한다.
+
 ## 백엔드 — Render와 Supabase Cloud
 
 Render의 Environment에 다음 값을 등록합니다. 프로젝트 URL과 Secret 키는 해당 Supabase Cloud 프로젝트의 Connect/API Keys 화면에서 확인합니다.

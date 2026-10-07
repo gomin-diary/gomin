@@ -2,7 +2,7 @@
 
 ## 프론트엔드
 
-- 전역 UI 상태는 `frontend/src/stores/`에 정의하고 `useUiStore`로 접근한다. 루트 Provider에서 스토어를 생성해 서버 요청 간 상태가 공유되지 않게 한다.
+- 전역 UI 상태는 `frontend/src/stores/`에 정의하고 `useUiStore`로 접근한다. 서비스 그룹의 Provider에서 스토어를 생성해 서버 요청 간 상태가 공유되지 않게 한다.
 - Server Component에서는 Zustand 상태를 읽거나 변경하지 않는다. API 응답을 무조건 전역 스토어에 저장하지 않는다.
 - 백엔드 호출은 `apiFetch("/api/v1/...")`를 사용한다.
 
