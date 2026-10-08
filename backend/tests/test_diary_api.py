@@ -62,3 +62,17 @@ class DiaryAPITests(unittest.TestCase):
         self.app.dependency_overrides[get_storage_settings] = lambda: settings()
         self.assertEqual(self.post().status_code, 503)
         self.repository.rpc.assert_not_awaited()
+
+    def test_save_passes_only_session_member_and_result_id_and_returns_original_entry(self):
+        result_id = uuid4()
+        entry = {"id": str(uuid4()), "source_result_id": str(result_id),
+                 "saved_at": datetime.now(timezone.utc).isoformat(), "member_id": str(self.member.id)}
+        self.repository.rpc.return_value = entry
+        first = self.client.post(f"/api/v1/diary-results/{result_id}/collection-entry")
+        second = self.client.post(f"/api/v1/diary-results/{result_id}/collection-entry")
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json(), second.json())
+        self.assertNotIn("member_id", first.text)
+        self.repository.rpc.assert_awaited_with("save_collection_result", {
+            "p_member_id": str(self.member.id), "p_result_id": str(result_id),
+        })

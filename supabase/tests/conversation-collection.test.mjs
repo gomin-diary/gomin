@@ -324,6 +324,21 @@ test('retains unsaved and regenerated results and deduplicates collection entrie
     entry.saved_at.getTime());
 });
 
+test('save RPC returns the first entry and timestamp, rejects foreign/missing results', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const r = await result(c, s);
+  const save = async memberId => (await q('select save_collection_result($1,$2) entry', [memberId, r.id]))[0].entry;
+  await rejectsCode(save(randomUUID()), 'P0002');
+  await rejectsCode(q('select save_collection_result($1,$2)', [c.member_id, randomUUID()]), 'P0002');
+  await db.exec('set role service_role');
+  try {
+    const first = await save(c.member_id);
+    assert.deepEqual(await save(c.member_id), first);
+    assert.equal((await q('select count(*)::int n from collection_entries where source_result_id=$1', [r.id]))[0].n, 1);
+  } finally { await db.exec('reset role'); }
+});
+
 test('job inputs cannot change on retry, and failed jobs can queue again without changing identity', async () => {
   const { c } = await context();
   const j = await job(c);

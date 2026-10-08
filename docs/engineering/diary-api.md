@@ -41,4 +41,11 @@
 한국 날짜는 DB의 completed_at 생성 컬럼으로 정한다. DB 커밋 실패를 생성 성공으로 반환하지 않는다.
 Storage 업로드 이후 커밋이 실패하면 객체가 남을 수 있으며 자동 삭제하지 않는다.
 
+## 컬렉션 저장
+
+`POST /api/v1/diary-results/{result_id}/collection-entry`는 완료 결과 ID만 사용한다.
+세션 회원이 소유한 결과를 `save_collection_result` RPC로 저장하고 항목 ID·결과 ID·최초 saved_at을 반환한다.
+동일 결과는 기존 항목을 반환하여 재클릭·재전송·응답 유실 복구 때 저장 시각을 바꾸지 않는다.
+없는 결과와 타인 결과는 모두 404다. 제목·날짜·이미지·요약은 원본 결과와 연결하며 요청 본문으로 덮어쓰지 않는다.
+
 [AI 설정](ai-client.md) · [대화·컬렉션 ERD](conversation-collection-erd.md) · [문서 목록](../README.md)

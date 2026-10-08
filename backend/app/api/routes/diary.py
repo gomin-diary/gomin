@@ -10,7 +10,7 @@ from app.core.config import Settings
 from app.core.errors import AppError
 from app.diary.repository import DiaryRepository, get_diary_repository
 from app.schemas.auth import MemberData
-from app.schemas.diary import ImageJob, ImageRequest
+from app.schemas.diary import CollectionEntry, ImageJob, ImageRequest
 from app.schemas.response import ApiSuccess
 from app.storage.dependencies import get_storage_settings
 
@@ -38,3 +38,16 @@ async def submit_image(
     })
     response.headers["Cache-Control"] = "no-store"
     return ApiSuccess(data=ImageJob.model_validate(job))
+
+
+@router.post("/diary-results/{result_id}/collection-entry", response_model=ApiSuccess[CollectionEntry])
+async def save_result(
+    result_id: UUID, response: Response,
+    member: Annotated[MemberData, Depends(require_member)],
+    repository: Annotated[DiaryRepository, Depends(get_diary_repository)],
+) -> ApiSuccess[CollectionEntry]:
+    entry = await repository.rpc("save_collection_result", {
+        "p_member_id": str(member.id), "p_result_id": str(result_id),
+    })
+    response.headers["Cache-Control"] = "no-store"
+    return ApiSuccess(data=CollectionEntry.model_validate(entry))

@@ -20,3 +20,9 @@ class ImageJob(BaseModel):
     error_code: str | None = None
     created_at: datetime
     finished_at: datetime | None = None
+
+
+class CollectionEntry(BaseModel):
+    id: UUID
+    source_result_id: UUID
+    saved_at: datetime
