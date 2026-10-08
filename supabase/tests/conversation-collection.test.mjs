@@ -255,6 +255,10 @@ test('the service role can complete the summary-to-collection flow with only the
     const [entry] = await q(`insert into collection_entries(member_id,source_result_id)
       values($1,$2) returning *`, [c.member_id, r.id]);
     assert.equal(entry.source_result_id, r.id);
+    const [{ entry: duplicate }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
+    assert.equal(duplicate.id, entry.id);
+    assert.equal(new Date(duplicate.saved_at).getTime(), new Date(entry.saved_at).getTime());
+    await rejectsCode(q('select save_collection_result($1,$2)', [randomUUID(), r.id]), 'P0002');
     await rejectsCode(q(`update conversation_summaries set current_feeling='바꾼 내용' where id=$1`, [s.id]), '42501');
     await rejectsCode(q(`update diary_results set title='바꾼 제목' where id=$1`, [r.id]), '42501');
   } finally {
@@ -280,5 +284,9 @@ test('MVP creates a result directly from an owned summary without an image job',
       [randomUUID(), s.id, randomUUID()]), 'P0002');
     const [{ entry }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
     assert.equal(entry.source_result_id, r.id);
+    const [{ entry: duplicate }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
+    assert.equal(duplicate.id, entry.id);
+    assert.equal(new Date(duplicate.saved_at).getTime(), new Date(entry.saved_at).getTime());
+    await rejectsCode(q('select save_collection_result($1,$2)', [randomUUID(), r.id]), 'P0002');
   } finally { await db.exec('reset role'); }
 });

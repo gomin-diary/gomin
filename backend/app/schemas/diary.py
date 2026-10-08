@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -23,3 +23,9 @@ class DiaryResult(BaseModel):
     encouragement_text: str
     diary_date: date
     image_url: str
+
+
+class SavedCollectionEntry(BaseModel):
+    id: UUID
+    source_result_id: UUID
+    saved_at: datetime

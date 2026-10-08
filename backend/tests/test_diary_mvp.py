@@ -37,6 +37,8 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
             result=AsyncMock(return_value=self.row))
         self.storage = SimpleNamespace(upload=AsyncMock(return_value=StoredFile("private", "image.png")),
             signed_image=AsyncMock(return_value=SignedImage("https://example.test/signed-image", None)))
+        self.entry = {"id": str(uuid4()), "source_result_id": self.result_id, "saved_at": "2026-10-08T05:30:00Z"}
+        self.repository.save = AsyncMock(return_value=self.entry)
         self.requests = []
         self.fail_image = False
         def provider(request):
@@ -89,3 +91,16 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("provider-secret", response.text)
         self.storage.upload.assert_not_awaited()
         self.repository.create_result.assert_not_awaited()
+
+    async def test_save_returns_entry_and_never_regenerates_image(self):
+        for _ in range(2):
+            response = await self.client.post(f"/api/v1/diary-results/{self.result_id}/collection-entry")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["data"]["id"], self.entry["id"])
+        self.repository.save.assert_awaited_with(str(self.member.id), self.result_id)
+        self.assertEqual(self.requests, [])
+
+    async def test_save_cannot_access_another_members_result(self):
+        self.repository.save.side_effect = AppError(404, "NOT_FOUND", "기록을 찾을 수 없습니다.")
+        response = await self.client.post(f"/api/v1/diary-results/{self.result_id}/collection-entry")
+        self.assertEqual(response.status_code, 404)
