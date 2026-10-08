@@ -284,6 +284,14 @@ test('MVP creates a result directly from an owned summary without an image job',
       [randomUUID(), s.id, randomUUID()]), 'P0002');
     const [{ entry }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
     assert.equal(entry.source_result_id, r.id);
+    await q(`select create_diary_result($1,$2,'미저장','위로','private',$3)`, [c.member_id, s.id, randomUUID()]);
+    const [{ entries }] = await q('select get_collection_entries($1) as entries', [c.member_id]);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, entry.id);
+    assert.deepEqual(entries[0].emotion_tags, ['불안']);
+    assert.equal(entries[0].source_result_id, r.id);
+    const [{ entries: empty }] = await q('select get_collection_entries($1) as entries', [randomUUID()]);
+    assert.deepEqual(empty, []);
     const [{ entry: duplicate }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
     assert.equal(duplicate.id, entry.id);
     assert.equal(new Date(duplicate.saved_at).getTime(), new Date(entry.saved_at).getTime());

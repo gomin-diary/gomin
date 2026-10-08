@@ -1,4 +1,4 @@
-/** Temporary view model for GOMIN-31; this is not a database schema. */
+/** Collection display model; DB fields are mapped by collection-api.ts. */
 export const collectionCategories = ["전체", "기쁨", "슬픔", "불안", "관계", "일상"] as const;
 export type CollectionCategory = typeof collectionCategories[number];
 export type CollectionImage = { src: string; width: number; left: number; top: number };

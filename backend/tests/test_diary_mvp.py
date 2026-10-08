@@ -39,6 +39,8 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
             signed_image=AsyncMock(return_value=SignedImage("https://example.test/signed-image", None)))
         self.entry = {"id": str(uuid4()), "source_result_id": self.result_id, "saved_at": "2026-10-08T05:30:00Z"}
         self.repository.save = AsyncMock(return_value=self.entry)
+        self.repository.list_entries = AsyncMock(return_value=[{**self.row, "id": self.entry["id"],
+            "source_result_id": self.result_id, "emotion_tags": ["불안"]}])
         self.requests = []
         self.fail_image = False
         def provider(request):
@@ -104,3 +106,18 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.repository.save.side_effect = AppError(404, "NOT_FOUND", "기록을 찾을 수 없습니다.")
         response = await self.client.post(f"/api/v1/diary-results/{self.result_id}/collection-entry")
         self.assertEqual(response.status_code, 404)
+
+    async def test_list_returns_owned_entries_and_signed_images(self):
+        response = await self.client.get("/api/v1/collection")
+        self.assertEqual(response.status_code, 200)
+        row = response.json()["data"][0]
+        self.assertEqual(row["id"], self.entry["id"])
+        self.assertEqual(row["source_result_id"], self.result_id)
+        self.assertNotIn("image_bucket", row)
+        self.repository.list_entries.assert_awaited_once_with(str(self.member.id))
+
+    async def test_list_empty_is_success(self):
+        self.repository.list_entries.return_value = []
+        response = await self.client.get("/api/v1/collection")
+        self.assertEqual(response.json()["data"], [])
+        self.storage.signed_image.assert_not_awaited()

@@ -29,3 +29,12 @@ class SavedCollectionEntry(BaseModel):
     id: UUID
     source_result_id: UUID
     saved_at: datetime
+
+
+class CollectionListItem(BaseModel):
+    id: UUID
+    source_result_id: UUID
+    title: str
+    diary_date: date
+    emotion_tags: list[str]
+    image_url: str
