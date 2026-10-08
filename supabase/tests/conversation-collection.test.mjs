@@ -357,6 +357,21 @@ test('collection keyset pages exclude foreign and unsaved results and match exac
   assert.deepEqual((await q('select list_collection_entries($1) items', [randomUUID()]))[0].items, []);
 });
 
+test('collection detail follows the original result summary after a newer summary is generated', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const r = await result(c, s);
+  const entry = (await q('select save_collection_result($1,$2) entry', [c.member_id, r.id]))[0].entry;
+  await summary(c, { version: 2 });
+  const [row] = await q('select get_collection_entry($1,$2) detail', [c.member_id, entry.id]);
+  assert.equal(row.detail.summary_id, s.id);
+  assert.equal(row.detail.source_result_id, r.id);
+  assert.equal(row.detail.conversation_id, c.id);
+  assert.deepEqual(row.detail.main_concerns, ['시험']);
+  await rejectsCode(q('select get_collection_entry($1,$2)', [randomUUID(), entry.id]), 'P0002');
+  await rejectsCode(q('select get_collection_entry($1,$2)', [c.member_id, randomUUID()]), 'P0002');
+});
+
 test('job inputs cannot change on retry, and failed jobs can queue again without changing identity', async () => {
   const { c } = await context();
   const j = await job(c);

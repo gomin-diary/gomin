@@ -96,3 +96,18 @@ class DiaryAPITests(unittest.TestCase):
         self.repository.rpc.return_value = []
         empty = self.client.get("/api/v1/collection").json()["data"]
         self.assertEqual(empty, {"items": [], "next_cursor": None})
+
+    def test_detail_keeps_source_summary_order_and_excludes_storage_paths(self):
+        row = {"id": str(uuid4()), "source_result_id": str(uuid4()), "summary_id": str(self.summary_id),
+               "conversation_id": str(self.conversation_id), "title": "기록", "diary_date": "2026-10-08",
+               "saved_at": "2026-10-08T12:34:56+00:00", "completed_at": "2026-10-08T12:30:00+00:00",
+               "encouragement_text": "괜찮아요", "current_feeling": "걱정", "main_concerns": ["두번째", "첫번째"],
+               "emotion_tags": ["불안", "슬픔"], "image_bucket": "private", "image_object_key": "private-path"}
+        self.repository.rpc.return_value = row
+        response = self.client.get(f"/api/v1/collection/{row['id']}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["data"]["main_concerns"], ["두번째", "첫번째"])
+        self.assertNotIn("image_object_key", response.text)
+        self.repository.rpc.assert_awaited_with("get_collection_entry", {
+            "p_member_id": str(self.member.id), "p_entry_id": row["id"],
+        })

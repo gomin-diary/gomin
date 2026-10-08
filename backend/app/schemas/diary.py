@@ -39,3 +39,10 @@ class CollectionListItem(CollectionEntry):
 class CollectionPage(BaseModel):
     items: list[CollectionListItem]
     next_cursor: str | None
+
+
+class CollectionDetail(CollectionListItem):
+    encouragement_text: str
+    completed_at: datetime
+    current_feeling: str
+    main_concerns: list[str]

@@ -11,7 +11,7 @@ from app.core.errors import AppError
 from app.diary.repository import DiaryRepository, get_diary_repository
 from app.diary.pagination import decode_cursor, encode_cursor
 from app.schemas.auth import MemberData
-from app.schemas.diary import CollectionEntry, CollectionListItem, CollectionPage, ImageJob, ImageRequest
+from app.schemas.diary import CollectionDetail, CollectionEntry, CollectionListItem, CollectionPage, ImageJob, ImageRequest
 from app.schemas.response import ApiSuccess
 from app.storage.dependencies import get_storage_settings
 
@@ -72,3 +72,14 @@ async def list_collection(
     next_cursor = encode_cursor(items[-1].saved_at, items[-1].id) if len(rows) > limit else None
     response.headers["Cache-Control"] = "no-store"
     return ApiSuccess(data=CollectionPage(items=items, next_cursor=next_cursor))
+
+
+@router.get("/collection/{entry_id}", response_model=ApiSuccess[CollectionDetail])
+async def collection_detail(
+    entry_id: UUID, response: Response,
+    member: Annotated[MemberData, Depends(require_member)],
+    repository: Annotated[DiaryRepository, Depends(get_diary_repository)],
+) -> ApiSuccess[CollectionDetail]:
+    row = await repository.rpc("get_collection_entry", {"p_member_id": str(member.id), "p_entry_id": str(entry_id)})
+    response.headers["Cache-Control"] = "no-store"
+    return ApiSuccess(data=CollectionDetail.model_validate(row))

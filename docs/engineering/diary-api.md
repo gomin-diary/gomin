@@ -57,4 +57,7 @@ limit는 1~100이며 끝에서는 next_cursor가 null이다. 0건은 성공한 �
 emotion은 원본 emotion_tags의 정확한 문자열 일치로 전체 DB 목록에 적용한다.
 화면의 기쁨·슬픔·불안·관계·일상은 같은 이름의 태그에만 매핑하며 자동 분류를 추가하지 않는다.
 
+`GET /api/v1/collection/{entry_id}`는 같은 회원의 항목→완료 결과→생성에 사용한 요약을 조인한다.
+최신 요약으로 바꾸지 않으며 주요 고민·감정 태그 순서도 원본대로 반환한다. 타인과 없는 항목은 같은 404다.
+
 [AI 설정](ai-client.md) · [대화·컬렉션 ERD](conversation-collection-erd.md) · [문서 목록](../README.md)
