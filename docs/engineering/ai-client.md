@@ -61,6 +61,17 @@ image_request = client.build_image_request(prompt, size="1024x1024")
 요청 객체·헤더 전체를 로그나 응답에 출력하지 않는다. 모델 응답 처리·생성 작업·DB 저장은 별도 호출 기능에서 구현한다.
 해상도는 호출자가 제공하며 사진 예시의 `1024x1024`를 서비스 정책으로 고정하지 않는다.
 
+`await client.generate_image(prompt, size=...)`는 이미지 요청을 한 번 전송하고
+`result.images[0].b64_json`을 엄격히 디코딩해 `bytes`로 반환한다. 응답의 세션 전용 URL은 사용하지 않는다.
+응답 본문과 디코딩 바이트 크기를 제한하며, 실제 이미지 형식은 업로드 호출부에서 검증한다.
+리다이렉트·자동 재시도는 하지 않는다. 요청 전체 제한 시간과 HTTP I/O 제한 시간을 적용한다.
+
+`AIRequestError`는 안전한 오류 코드와 요청 결과가 불확실한지를 나타내는 `uncertain`을 제공한다.
+연결 실패는 `CONNECTION_FAILED`, 시간 초과는 `TIMEOUT`, 429는 `RATE_LIMITED`, 그 외 비정상 상태는
+`PROVIDER_ERROR`, 잘못된 응답은 `INVALID_RESPONSE`, 응답 크기 초과는 `RESPONSE_TOO_LARGE`다.
+타임아웃·서버 오류·잘못된 성공 응답 후에는 제공자가 이미 처리했을 수 있으므로 자동으로 다시 생성하지 않는다.
+제공자 오류 본문·인증 헤더·Base64를 오류 메시지에 포함하지 않는다.
+
 ## 검증
 
 설정과 모의 HTTP 전송으로 기본·사용자 지정 origin의 최종 경로, Bearer/JSON 헤더, 모델 분리,

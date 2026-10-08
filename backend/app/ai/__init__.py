@@ -1,3 +1,3 @@
-from app.ai.client import AIConfigurationError, CodysseyClient
+from app.ai.client import AIConfigurationError, AIRequestError, CodysseyClient
 
-__all__ = ["AIConfigurationError", "CodysseyClient"]
+__all__ = ["AIConfigurationError", "AIRequestError", "CodysseyClient"]
