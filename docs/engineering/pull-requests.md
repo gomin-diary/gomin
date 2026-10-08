@@ -36,7 +36,7 @@ PR 제목은 Jira 작업 번호와 최종 변경 결과를 포함한다.
 
 ## 프로젝트 스킬
 
-공유 스킬 [gomin-pr](../../.agents/skills/gomin-pr/SKILL.md)에 제목·Jira 키·본문 구성·개조체 작성과 반영 절차를 정의한다. 스킬과 UI 메타데이터는 `.agents/skills/gomin-pr/`에서 Git으로 관리한다.
+공유 스킬 [gomin-pr](https://github.com/gomin-diary/gomin/blob/main/.agents/skills/gomin-pr/SKILL.md)에 제목·Jira 키·본문 구성·개조체 작성과 반영 절차를 정의한다. 스킬과 UI 메타데이터는 `.agents/skills/gomin-pr/`에서 Git으로 관리한다.
 
 ```text
 $gomin-pr 스킬로 현재 변경사항의 PR 제목과 본문을 작성해줘
