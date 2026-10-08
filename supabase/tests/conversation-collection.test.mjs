@@ -168,6 +168,27 @@ test('finalization is atomic, rejects stale tokens and preserves first result on
   assert.equal((await q('select phase from conversations where id=$1', [c.id]))[0].phase, 'ready');
 });
 
+test('explicit retry preserves inputs and identity, and replaced tokens cannot write', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const j = await claim((await submit(c, s)).id);
+  const fail = async token => (await q("select fail_diary_image($1,$2,'TIMEOUT') ok", [j.id, token]))[0].ok;
+  assert.equal(await fail(randomUUID()), false);
+  assert.equal(await fail(j.lease_token), true);
+  await rejectsCode(q('select retry_diary_image($1,$2)', [randomUUID(), j.id]), 'P0002');
+  const retry = (await q('select retry_diary_image($1,$2) job', [c.member_id, j.id]))[0].job;
+  assert.equal(retry.id, j.id);
+  assert.equal(retry.idempotency_key, j.idempotency_key);
+  assert.equal(retry.request_fingerprint, j.request_fingerprint);
+  assert.equal(retry.input_summary_id, s.id);
+  const next = await claim(j.id);
+  assert.equal(next.attempt_count, 2);
+  assert.notEqual(next.lease_token, j.lease_token);
+  assert.equal(await fail(j.lease_token), false);
+  await rejectsCode(finalize(j), 'P0001');
+  assert.ok(await finalize(next));
+});
+
 test('expired completion cannot create a result and other active jobs keep generating phase', async () => {
   const { c } = await context();
   const s = await summary(c);

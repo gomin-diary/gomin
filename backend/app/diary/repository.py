@@ -41,6 +41,11 @@ class DiaryRepository:
             "p_image_object_key": path,
         })
 
+    async def fail_image(self, job_id: str, lease_token: str, error_code: str):
+        return await self.rpc("fail_diary_image", {
+            "p_job_id": job_id, "p_lease_token": lease_token, "p_error_code": error_code,
+        })
+
 
 def get_diary_repository(database: Annotated[AsyncClient, Depends(get_supabase)]) -> DiaryRepository:
     return DiaryRepository(database)
