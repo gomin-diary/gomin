@@ -30,3 +30,26 @@ test("real list preserves empty success and propagates failures", async () => {
   assert.deepEqual(await createApiCollectionRepository(async () => []).list("member"), []);
   await assert.rejects(createApiCollectionRepository(async () => { throw new Error("offline"); }).list("member"), /offline/);
 });
+
+test("detail displays the original summary and the selected entry image", async () => {
+  const repo = createApiCollectionRepository(async (path) => {
+    assert.equal(path, "/api/v1/collection/entry-id");
+    return { ...row, encouragement_text: "잘 해내고 있어요", current_feeling: "불안해요", main_concerns: ["시험", "관계"] };
+  });
+  const detail = await repo.detail("member", row.id);
+  assert.equal(detail.id, row.id);
+  assert.equal(detail.caption, "잘 해내고 있어요");
+  assert.equal(detail.mind, "불안해요");
+  assert.deepEqual(detail.concerns, ["시험", "관계"]);
+  assert.deepEqual(detail.emotions, row.emotion_tags);
+  assert.equal(detail.image.src, row.image_url);
+});
+
+test("detail distinguishes not found from request errors", async () => {
+  const { ApiRequestError } = await import("../src/lib/api.ts");
+  const notFound = createApiCollectionRepository(async () => {
+    throw new ApiRequestError(404, { code: "NOT_FOUND", message: "없음", details: [] });
+  });
+  await assert.rejects(notFound.detail("member", row.id), (error) => error.name === "CollectionNotFoundError");
+  await assert.rejects(createApiCollectionRepository(async () => { throw new Error("offline"); }).detail("member", row.id), /offline/);
+});

@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { apiFetch, ApiRequestError } from "./api";
 import {
   collectionCategories, CollectionNotFoundError,
   type CollectionItem, type CollectionRepository,
@@ -8,6 +8,7 @@ export type CollectionRow = {
   id: string; source_result_id: string; title: string; diary_date: string;
   emotion_tags: string[]; image_url: string;
 };
+type DetailRow = CollectionRow & { encouragement_text: string; current_feeling: string; main_concerns: string[] };
 
 export function collectionItem(row: CollectionRow): CollectionItem {
   return {
@@ -23,8 +24,15 @@ export function createApiCollectionRepository(request: typeof apiFetch = apiFetc
       const rows = await request<CollectionRow[]>("/api/v1/collection", { signal });
       return rows.map(collectionItem);
     },
-    async detail() {
-      throw new CollectionNotFoundError();
+    async detail(_memberId, id, signal) {
+      try {
+        const row = await request<DetailRow>(`/api/v1/collection/${encodeURIComponent(id)}`, { signal });
+        return { ...collectionItem(row), caption: row.encouragement_text,
+          mind: row.current_feeling, concerns: row.main_concerns, emotions: row.emotion_tags };
+      } catch (error) {
+        if (error instanceof ApiRequestError && error.status === 404) throw new CollectionNotFoundError();
+        throw error;
+      }
     },
   };
 }

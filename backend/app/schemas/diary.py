@@ -38,3 +38,10 @@ class CollectionListItem(BaseModel):
     diary_date: date
     emotion_tags: list[str]
     image_url: str
+
+
+class CollectionDetail(CollectionListItem):
+    summary_id: UUID
+    encouragement_text: str
+    current_feeling: str
+    main_concerns: list[str]

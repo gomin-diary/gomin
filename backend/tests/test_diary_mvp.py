@@ -41,6 +41,8 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.repository.save = AsyncMock(return_value=self.entry)
         self.repository.list_entries = AsyncMock(return_value=[{**self.row, "id": self.entry["id"],
             "source_result_id": self.result_id, "emotion_tags": ["불안"]}])
+        self.repository.entry = AsyncMock(return_value={**self.row, **self.entry,
+            "current_feeling": "불안해요", "main_concerns": ["시험"], "emotion_tags": ["불안"]})
         self.requests = []
         self.fail_image = False
         def provider(request):
@@ -120,4 +122,25 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.repository.list_entries.return_value = []
         response = await self.client.get("/api/v1/collection")
         self.assertEqual(response.json()["data"], [])
+        self.storage.signed_image.assert_not_awaited()
+
+    async def test_generate_save_list_detail_keep_the_same_result_and_original_summary(self):
+        generated = await self.client.post("/api/v1/diary-images", json={"summary_id": self.summary_id})
+        result_id = generated.json()["data"]["id"]
+        saved = await self.client.post(f"/api/v1/diary-results/{result_id}/collection-entry")
+        entry_id = saved.json()["data"]["id"]
+        listed = (await self.client.get("/api/v1/collection")).json()["data"]
+        self.assertEqual(listed[0]["id"], entry_id)
+        detail = (await self.client.get(f"/api/v1/collection/{entry_id}")).json()["data"]
+        self.assertEqual(detail["source_result_id"], result_id)
+        self.assertEqual(detail["summary_id"], self.summary_id)
+        self.assertEqual(detail["current_feeling"], self.summary["current_feeling"])
+        self.assertEqual(detail["main_concerns"], self.summary["main_concerns"])
+        self.assertEqual(detail["emotion_tags"], self.summary["emotion_tags"])
+        self.repository.entry.assert_awaited_once_with(str(self.member.id), entry_id)
+
+    async def test_other_members_entry_returns_not_found_without_signing_image(self):
+        self.repository.entry.side_effect = AppError(404, "NOT_FOUND", "기록을 찾을 수 없습니다.")
+        response = await self.client.get(f"/api/v1/collection/{self.entry['id']}")
+        self.assertEqual(response.status_code, 404)
         self.storage.signed_image.assert_not_awaited()
