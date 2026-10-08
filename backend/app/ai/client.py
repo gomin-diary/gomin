@@ -80,7 +80,22 @@ class CodysseyClient:
             raise AIRequestError("INVALID_RESPONSE", uncertain=True) from None
         finally:
             if response is not None:
-                await response.aclose()
+                try:
+                    await response.aclose()
+                except httpx.HTTPError:
+                    raise AIRequestError("PROVIDER_ERROR", uncertain=True) from None
+
+    async def generate_text(self, messages: list[dict[str, str]]) -> str:
+        payload = await self._json_response(self.build_text_request(messages), max_bytes=65536)
+        try:
+            choice = payload["choices"][0]
+            message = choice["message"]
+            content = message["content"]
+            if choice["finish_reason"] != "stop" or message["role"] != "assistant" or not isinstance(content, str) or not content.strip():
+                raise ValueError()
+            return content
+        except (KeyError, IndexError, TypeError, ValueError):
+            raise AIRequestError("INVALID_RESPONSE", uncertain=True) from None
 
     async def generate_image(self, prompt: str, *, size: str) -> bytes:
         """Receive Base64 bytes; the caller validates the image before uploading."""

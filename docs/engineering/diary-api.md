@@ -20,6 +20,11 @@
 
 ## 실행권과 재시작
 
+`compose_diary`는 DB 요약의 current_feeling·main_concerns·emotion_tags만 텍스트 모델에 전달한다.
+이름·회원 ID·이메일·원문 대화를 추가하지 않으며 JSON으로 분리한 자료를 지시문으로 실행하지 않도록 요청한다.
+제목·위로 문구·동물과 자연 풍경의 image_prompt를 엄격한 JSON으로 검증하고 공백·추가 필드·잘린 출력을 거절한다.
+미설정 모델이나 잘못된 출력 대신 더미 문구를 채우지 않는다.
+
 작업은 DB의 queued 행으로 남는다. `claim_diary_image`는 `FOR UPDATE SKIP LOCKED`로
 하나를 running으로 전환하고 실행별 토큰·시도 횟수·기본 600초 lease를 반환한다.
 브라우저 응답의 성공과 생성 완료는 별개이며 워커는 DB 큐를 사용한다.
