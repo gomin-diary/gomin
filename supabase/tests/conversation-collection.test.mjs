@@ -29,6 +29,10 @@ async function submit(c, s, key = randomUUID(), fingerprint = 'fingerprint', mod
 async function claim(id) {
   return (await q('select claim_diary_image($1,600) as job', [id]))[0].job;
 }
+async function finalize(j, token = j.lease_token, title = '오늘의 기록') {
+  return (await q("select finalize_diary_image($1,$2,$3,'잘하고 있어요','gomin-diary-images',$4) as result",
+    [j.id, token, title, `${j.id}.png`]))[0].result;
+}
 
 async function conversation(memberId) {
   if (!memberId) {
@@ -145,6 +149,34 @@ test('rejects duplicate message submissions and duplicate sequence numbers', asy
   await rejectsCode(message(c, 1), '23505');
   const [stored] = await q('select count(*)::int n from conversation_messages where conversation_id=$1', [c.id]);
   assert.equal(stored.n, 1);
+});
+
+test('finalization is atomic, rejects stale tokens and preserves first result on replay', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const j = await claim((await submit(c, s)).id);
+  await rejectsCode(finalize(j, randomUUID()), 'P0001');
+  await rejectsCode(finalize(j, j.lease_token, '   '), '23514');
+  assert.equal((await q('select status from generation_jobs where id=$1', [j.id]))[0].status, 'running');
+  assert.equal((await q('select count(*)::int n from diary_results where generation_job_id=$1', [j.id]))[0].n, 0);
+  const result = await finalize(j);
+  assert.deepEqual(await finalize(j, j.lease_token, '변경될 수 없어요'), result);
+  const [job] = await q('select status,finished_at,lease_token from generation_jobs where id=$1', [j.id]);
+  assert.equal(job.status, 'succeeded');
+  assert.equal(job.lease_token, null);
+  assert.equal(job.finished_at.toISOString(), new Date(result.completed_at).toISOString());
+  assert.equal((await q('select phase from conversations where id=$1', [c.id]))[0].phase, 'ready');
+});
+
+test('expired completion cannot create a result and other active jobs keep generating phase', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const first = await claim((await submit(c, s)).id);
+  const second = await claim((await submit(c, s)).id);
+  await finalize(first);
+  assert.equal((await q('select phase from conversations where id=$1', [c.id]))[0].phase, 'generating');
+  await q("update generation_jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [second.id]);
+  await rejectsCode(finalize(second), 'P0001');
 });
 
 test('requires the correct ID shape for each message role and rejects blank content', async () => {

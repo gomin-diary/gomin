@@ -33,6 +33,14 @@ class DiaryRepository:
     async def expire_image_leases(self):
         return await self.rpc("expire_diary_image_leases", {})
 
+    async def finalize_image(self, job_id: str, lease_token: str, title: str,
+                             encouragement: str, bucket: str, path: str):
+        return await self.rpc("finalize_diary_image", {
+            "p_job_id": job_id, "p_lease_token": lease_token, "p_title": title,
+            "p_encouragement_text": encouragement, "p_image_bucket": bucket,
+            "p_image_object_key": path,
+        })
+
 
 def get_diary_repository(database: Annotated[AsyncClient, Depends(get_supabase)]) -> DiaryRepository:
     return DiaryRepository(database)
