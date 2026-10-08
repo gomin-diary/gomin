@@ -48,10 +48,10 @@ class AISettingsTests(unittest.TestCase):
                 with self.assertRaises(ValidationError):
                     settings(ai_base_url=origin)
 
-    def test_models_are_separate_and_image_selection_is_explicit(self):
+    def test_default_models_are_separate_and_can_be_overridden(self):
         config = settings()
         self.assertEqual(config.ai_text_model, "gpt-5.4-mini")
-        self.assertEqual(config.ai_image_model, "")
+        self.assertEqual(config.ai_image_model, "gpt-image-2")
         self.assertEqual(config.ai_image_response_format, "b64_json")
         config = settings(ai_text_model="text-example", ai_image_model="image-example")
         self.assertEqual(config.ai_text_model, "text-example")
@@ -125,11 +125,17 @@ class AIClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_image_model_does_not_fall_back_to_text_model(self):
         async with httpx.AsyncClient() as http_client:
-            client = CodysseyClient(http_client, settings(ai_api_key="test-only"))
+            client = CodysseyClient(http_client, settings(ai_api_key="test-only", ai_image_model=""))
             with patch.object(http_client, "build_request") as build:
                 with self.assertRaisesRegex(AIConfigurationError, "AI_IMAGE_MODEL"):
                     client.build_image_request("prompt", size="auto")
                 build.assert_not_called()
+
+    async def test_default_image_request_uses_gpt_image_2(self):
+        async with httpx.AsyncClient() as http_client:
+            client = CodysseyClient(http_client, settings(ai_api_key="test-only"))
+            request = client.build_image_request("요약의 그림", size="1024x1024")
+        self.assertEqual(json.loads(request.content)["model"], "gpt-image-2")
 
     async def test_lifespan_owns_the_shared_client_and_dependency(self):
         config = settings()

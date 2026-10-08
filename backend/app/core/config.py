@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     ai_base_url: HttpUrl = HttpUrl("https://copa.codyssey.kr")
     ai_api_key: SecretStr = SecretStr("")
     ai_text_model: str = Field(default="gpt-5.4-mini", min_length=1)
-    ai_image_model: str = ""
+    ai_image_model: str = "gpt-image-2"
     ai_image_size: str = Field(default="1024x1024", pattern=r"^[1-9][0-9]{0,3}x[1-9][0-9]{0,3}$")
     ai_image_response_format: Literal["b64_json"] = "b64_json"
     ai_timeout_seconds: float = Field(default=120, gt=0, le=600, allow_inf_nan=False)

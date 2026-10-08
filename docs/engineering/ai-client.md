@@ -11,7 +11,7 @@
 | `AI_BASE_URL` | `https://copa.codyssey.kr` | 경로·쿼리·인증정보 없는 HTTPS origin |
 | `AI_API_KEY` | 빈 값 | 백엔드 전용 가상 키, 요청 구성 시 필수 |
 | `AI_TEXT_MODEL` | `gpt-5.4-mini` | 텍스트/프롬프트 요청 모델 |
-| `AI_IMAGE_MODEL` | 빈 값 | 제공자가 지원하는 이미지 모델, 이미지 요청 구성 시 필수 |
+| `AI_IMAGE_MODEL` | `gpt-image-2` | 이미지 요청 모델, 환경변수로 재정의 가능 |
 | `AI_IMAGE_SIZE` | `1024x1024` | 이미지 접수 시 보관하는 제공자 해상도 옵션 |
 | `AI_IMAGE_RESPONSE_FORMAT` | `b64_json` | 허용하는 이미지 응답 형식 |
 | `AI_TIMEOUT_SECONDS` | `120` | 요청별 제한 시간, 0 초과 600 이하의 유한한 값 |
@@ -34,9 +34,11 @@ OpenAI 호환 base는 `Settings.ai_openai_base_url`의 `https://copa.codyssey.kr
 이미지 경로는 호환 base에 붙이지 않는다. 두 요청 모두 서버의 가상 키로
 `Authorization: Bearer <virtual-key>`와 `Content-Type: application/json`을 구성한다.
 
-사용자 지정 텍스트 모델은 `gpt-5.4-mini`다. 제공자 이미지 예제는 `gpt-image-1-mini`를 사용하지만
-이 예시만으로 최종 이미지 모델을 선택하지 않는다. `AI_IMAGE_MODEL`을 별도로 지정해야 하며,
-텍스트 모델을 이미지 모델의 기본값으로 재사용하지 않는다. 모델의 실제 사용 가능 여부는 제공자에서 확인한다.
+사용자 지정 기본 모델은 텍스트 `gpt-5.4-mini`, 이미지 `gpt-image-2`다.
+`AI_IMAGE_MODEL` 환경변수가 없으면 이미지 기본값을 사용하고, 설정한 값이 있으면 그 값을 사용한다.
+명시적으로 빈 문자열을 설정하면 이미지 요청 구성 시 오류로 거절한다.
+제공자 사진의 `gpt-image-1-mini`는 참고 예제이며 프로젝트 이미지 기본값으로 사용하지 않는다.
+이미 접수한 작업은 DB에 기록한 모델을 유지한다. 모델의 실제 사용 가능 여부는 제공자에서 확인한다.
 
 제공자 사진에 따르면 이미지 응답 `url`은 웹 로그인 세션 전용이므로 `b64_json`을 요청한다.
 참고 응답 경로는 `result.images[0].b64_json`이다. 이후 이미지 어댑터에서 디코딩·형식·크기를 검증하고

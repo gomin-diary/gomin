@@ -61,9 +61,16 @@ class DiaryAPITests(unittest.TestCase):
         self.assertEqual(self.post(member_id=str(uuid4())).status_code, 422)
         self.assertEqual(self.post(current_feeling="untrusted").status_code, 422)
         self.repository.rpc.assert_not_awaited()
-        self.app.dependency_overrides[get_storage_settings] = lambda: settings()
+        self.app.dependency_overrides[get_storage_settings] = lambda: settings(ai_image_model="")
         self.assertEqual(self.post().status_code, 503)
         self.repository.rpc.assert_not_awaited()
+
+    def test_default_image_model_is_recorded_in_new_job_inputs(self):
+        self.app.dependency_overrides[get_storage_settings] = lambda: settings()
+        self.assertEqual(self.post().status_code, 202)
+        params = self.repository.rpc.call_args.args[1]
+        self.assertEqual(params["p_image_model"], "gpt-image-2")
+        self.assertEqual(params["p_text_model"], "gpt-5.4-mini")
 
     def test_save_passes_only_session_member_and_result_id_and_returns_original_entry(self):
         result_id = uuid4()
