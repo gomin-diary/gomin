@@ -255,6 +255,10 @@ test('the service role can complete the summary-to-collection flow with only the
     const [entry] = await q(`insert into collection_entries(member_id,source_result_id)
       values($1,$2) returning *`, [c.member_id, r.id]);
     assert.equal(entry.source_result_id, r.id);
+    const [{ entry: duplicate }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
+    assert.equal(duplicate.id, entry.id);
+    assert.equal(new Date(duplicate.saved_at).getTime(), new Date(entry.saved_at).getTime());
+    await rejectsCode(q('select save_collection_result($1,$2)', [randomUUID(), r.id]), 'P0002');
     await rejectsCode(q(`update conversation_summaries set current_feeling='바꾼 내용' where id=$1`, [s.id]), '42501');
     await rejectsCode(q(`update diary_results set title='바꾼 제목' where id=$1`, [r.id]), '42501');
   } finally {
@@ -280,5 +284,25 @@ test('MVP creates a result directly from an owned summary without an image job',
       [randomUUID(), s.id, randomUUID()]), 'P0002');
     const [{ entry }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
     assert.equal(entry.source_result_id, r.id);
+    await q(`select create_diary_result($1,$2,'미저장','위로','private',$3)`, [c.member_id, s.id, randomUUID()]);
+    const [{ entries }] = await q('select get_collection_entries($1) as entries', [c.member_id]);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, entry.id);
+    assert.deepEqual(entries[0].emotion_tags, ['불안']);
+    assert.equal(entries[0].source_result_id, r.id);
+    const [{ entries: empty }] = await q('select get_collection_entries($1) as entries', [randomUUID()]);
+    assert.deepEqual(empty, []);
+    const latest = await summary(c, { version: 2 });
+    const [{ detail }] = await q('select get_collection_entry($1,$2) as detail', [c.member_id, entry.id]);
+    assert.equal(detail.summary_id, s.id);
+    assert.notEqual(detail.summary_id, latest.id);
+    assert.deepEqual(detail.main_concerns, ['시험']);
+    assert.equal(detail.current_feeling, '불안해요');
+    assert.deepEqual(detail.emotion_tags, ['불안']);
+    await rejectsCode(q('select get_collection_entry($1,$2)', [randomUUID(), entry.id]), 'P0002');
+    const [{ entry: duplicate }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
+    assert.equal(duplicate.id, entry.id);
+    assert.equal(new Date(duplicate.saved_at).getTime(), new Date(entry.saved_at).getTime());
+    await rejectsCode(q('select save_collection_result($1,$2)', [randomUUID(), r.id]), 'P0002');
   } finally { await db.exec('reset role'); }
 });

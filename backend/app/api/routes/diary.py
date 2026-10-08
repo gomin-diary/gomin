@@ -10,7 +10,7 @@ from app.core.errors import AppError
 from app.diary.composition import compose_diary
 from app.diary.repository import DiaryRepository, get_diary_repository
 from app.schemas.auth import MemberData
-from app.schemas.diary import DiaryResult, DiarySummary, GenerateDiaryInput
+from app.schemas.diary import CollectionDetail, CollectionListItem, DiaryResult, DiarySummary, GenerateDiaryInput, SavedCollectionEntry
 from app.schemas.response import ApiSuccess
 from app.storage.dependencies import get_diary_image_storage, get_file_storage
 from app.storage.diary_images import DiaryImageStorage, InvalidDiaryImage
@@ -61,3 +61,32 @@ async def generate(
 async def result(result_id: UUID, member: Member, repository: Repository, storage: Storage):
     row = await repository.result(str(member.id), str(result_id))
     return ApiSuccess(data=await result_response(row, storage))
+
+
+@router.post("/diary-results/{result_id}/collection-entry", response_model=ApiSuccess[SavedCollectionEntry])
+async def save(result_id: UUID, member: Member, repository: Repository):
+    row = await repository.save(str(member.id), str(result_id))
+    return ApiSuccess(data=SavedCollectionEntry(**row))
+
+
+@router.get("/collection", response_model=ApiSuccess[list[CollectionListItem]])
+async def list_entries(member: Member, repository: Repository, storage: Storage):
+    rows = await repository.list_entries(str(member.id))
+    items = []
+    for row in rows:
+        try:
+            image = await storage.signed_image(row["image_bucket"], row["image_object_key"])
+        except StorageSigningError:
+            raise AppError(503, "IMAGE_UNAVAILABLE", "이미지를 표시할 수 없습니다.") from None
+        items.append(CollectionListItem(**row, image_url=image.url))
+    return ApiSuccess(data=items)
+
+
+@router.get("/collection/{entry_id}", response_model=ApiSuccess[CollectionDetail])
+async def entry(entry_id: UUID, member: Member, repository: Repository, storage: Storage):
+    row = await repository.entry(str(member.id), str(entry_id))
+    try:
+        image = await storage.signed_image(row["image_bucket"], row["image_object_key"])
+    except StorageSigningError:
+        raise AppError(503, "IMAGE_UNAVAILABLE", "이미지를 표시할 수 없습니다.") from None
+    return ApiSuccess(data=CollectionDetail(**row, image_url=image.url))
