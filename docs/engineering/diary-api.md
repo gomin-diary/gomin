@@ -48,4 +48,13 @@ Storage 업로드 이후 커밋이 실패하면 객체가 남을 수 있으며 �
 동일 결과는 기존 항목을 반환하여 재클릭·재전송·응답 유실 복구 때 저장 시각을 바꾸지 않는다.
 없는 결과와 타인 결과는 모두 404다. 제목·날짜·이미지·요약은 원본 결과와 연결하며 요청 본문으로 덮어쓰지 않는다.
 
+## 컬렉션 목록
+
+`GET /api/v1/collection?limit=24&cursor=...&emotion=...`는 본인의 저장 항목만 반환한다.
+`saved_at DESC, id DESC`로 정렬하고 두 값을 포함하는 불투명 next_cursor로 다음 페이지를 조회한다.
+limit는 1~100이며 끝에서는 next_cursor가 null이다. 0건은 성공한 빈 items다.
+항목 ID와 source_result_id, summary_id, conversation_id를 구분하고 일기 날짜는 diary_date다.
+emotion은 원본 emotion_tags의 정확한 문자열 일치로 전체 DB 목록에 적용한다.
+화면의 기쁨·슬픔·불안·관계·일상은 같은 이름의 태그에만 매핑하며 자동 분류를 추가하지 않는다.
+
 [AI 설정](ai-client.md) · [대화·컬렉션 ERD](conversation-collection-erd.md) · [문서 목록](../README.md)

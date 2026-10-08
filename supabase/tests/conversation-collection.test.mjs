@@ -339,6 +339,24 @@ test('save RPC returns the first entry and timestamp, rejects foreign/missing re
   } finally { await db.exec('reset role'); }
 });
 
+test('collection keyset pages exclude foreign and unsaved results and match exact emotion tags', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const first = await result(c, s);
+  const second = await result(c, s);
+  await result(c, s); // unsaved
+  await q('select save_collection_result($1,$2)', [c.member_id, first.id]);
+  await q('select save_collection_result($1,$2)', [c.member_id, second.id]);
+  const page = (await q("select list_collection_entries($1,1,null,null,'불안') items", [c.member_id]))[0].items;
+  assert.equal(page.length, 2); // limit + 1
+  const next = (await q('select list_collection_entries($1,1,$2,$3) items',
+    [c.member_id, page[0].saved_at, page[0].id]))[0].items;
+  assert.equal(next.length, 1);
+  assert.equal(next[0].id, page[1].id);
+  assert.deepEqual((await q("select list_collection_entries($1,24,null,null,'기쁨') items", [c.member_id]))[0].items, []);
+  assert.deepEqual((await q('select list_collection_entries($1) items', [randomUUID()]))[0].items, []);
+});
+
 test('job inputs cannot change on retry, and failed jobs can queue again without changing identity', async () => {
   const { c } = await context();
   const j = await job(c);

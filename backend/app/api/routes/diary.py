@@ -3,14 +3,15 @@ import json
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.auth.session import require_member
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.diary.repository import DiaryRepository, get_diary_repository
+from app.diary.pagination import decode_cursor, encode_cursor
 from app.schemas.auth import MemberData
-from app.schemas.diary import CollectionEntry, ImageJob, ImageRequest
+from app.schemas.diary import CollectionEntry, CollectionListItem, CollectionPage, ImageJob, ImageRequest
 from app.schemas.response import ApiSuccess
 from app.storage.dependencies import get_storage_settings
 
@@ -51,3 +52,23 @@ async def save_result(
     })
     response.headers["Cache-Control"] = "no-store"
     return ApiSuccess(data=CollectionEntry.model_validate(entry))
+
+
+@router.get("/collection", response_model=ApiSuccess[CollectionPage])
+async def list_collection(
+    response: Response,
+    member: Annotated[MemberData, Depends(require_member)],
+    repository: Annotated[DiaryRepository, Depends(get_diary_repository)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 24,
+    cursor: Annotated[str | None, Query(max_length=512)] = None,
+    emotion: Annotated[str | None, Query(min_length=1, max_length=100)] = None,
+) -> ApiSuccess[CollectionPage]:
+    saved_at, entry_id = decode_cursor(cursor)
+    rows = await repository.rpc("list_collection_entries", {
+        "p_member_id": str(member.id), "p_limit": limit,
+        "p_after_saved_at": saved_at, "p_after_id": entry_id, "p_emotion": emotion,
+    })
+    items = [CollectionListItem.model_validate(row) for row in rows[:limit]]
+    next_cursor = encode_cursor(items[-1].saved_at, items[-1].id) if len(rows) > limit else None
+    response.headers["Cache-Control"] = "no-store"
+    return ApiSuccess(data=CollectionPage(items=items, next_cursor=next_cursor))

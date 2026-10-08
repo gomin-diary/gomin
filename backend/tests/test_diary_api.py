@@ -76,3 +76,23 @@ class DiaryAPITests(unittest.TestCase):
         self.repository.rpc.assert_awaited_with("save_collection_result", {
             "p_member_id": str(self.member.id), "p_result_id": str(result_id),
         })
+
+    def test_list_cursor_is_stable_and_passes_only_session_owner(self):
+        row = {"id": str(uuid4()), "source_result_id": str(uuid4()), "summary_id": str(self.summary_id),
+               "conversation_id": str(self.conversation_id), "title": "오늘", "diary_date": "2026-10-08",
+               "emotion_tags": ["불안"], "saved_at": "2026-10-08T12:34:56.123456+00:00",
+               "image_bucket": "private", "image_object_key": "private-path"}
+        self.repository.rpc.return_value = [row, {**row, "id": str(uuid4())}]
+        response = self.client.get("/api/v1/collection?limit=1&emotion=불안")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("image_object_key", response.text)
+        cursor = response.json()["data"]["next_cursor"]
+        self.client.get("/api/v1/collection", params={"limit": 1, "cursor": cursor})
+        params = self.repository.rpc.call_args.args[1]
+        self.assertEqual(params["p_member_id"], str(self.member.id))
+        self.assertEqual(params["p_after_id"], row["id"])
+        self.assertEqual(params["p_after_saved_at"], row["saved_at"])
+        self.assertEqual(self.client.get("/api/v1/collection?cursor=bad").status_code, 422)
+        self.repository.rpc.return_value = []
+        empty = self.client.get("/api/v1/collection").json()["data"]
+        self.assertEqual(empty, {"items": [], "next_cursor": None})

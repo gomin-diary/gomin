@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -26,3 +26,16 @@ class CollectionEntry(BaseModel):
     id: UUID
     source_result_id: UUID
     saved_at: datetime
+
+
+class CollectionListItem(CollectionEntry):
+    summary_id: UUID
+    conversation_id: UUID
+    title: str
+    diary_date: date
+    emotion_tags: list[str]
+
+
+class CollectionPage(BaseModel):
+    items: list[CollectionListItem]
+    next_cursor: str | None
