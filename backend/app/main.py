@@ -1,4 +1,6 @@
 from collections.abc import AsyncIterator
+import asyncio
+from contextlib import suppress
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -16,6 +18,10 @@ from app.auth.google_provider import GoogleProvider
 from app.core.config import get_settings
 from app.core.exception_handlers import ERROR_RESPONSES, register_exception_handlers
 from app.db.client import create_supabase_client
+from app.diary.repository import DiaryRepository
+from app.diary.worker import DiaryWorker
+from app.storage.diary_images import DiaryImageStorage
+from app.storage.supabase import SupabaseFileStorage
 
 settings = get_settings()
 
@@ -26,7 +32,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.supabase = await create_supabase_client(settings, http_client)
         app.state.google_provider = GoogleProvider(http_client, settings)
         app.state.ai_client = CodysseyClient(http_client, settings)
-        yield
+        worker_task = None
+        if settings.diary_worker_enabled:
+            storage_settings = settings.model_copy(update={"storage_bucket": settings.diary_image_bucket})
+            worker = DiaryWorker(DiaryRepository(app.state.supabase), app.state.ai_client,
+                DiaryImageStorage(SupabaseFileStorage(app.state.supabase, storage_settings), settings))
+            worker_task = asyncio.create_task(worker.run())
+        try:
+            yield
+        finally:
+            if worker_task:
+                worker_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker_task
 
 
 app = FastAPI(title="Gomin API", version="0.1.0", lifespan=lifespan, responses=ERROR_RESPONSES)

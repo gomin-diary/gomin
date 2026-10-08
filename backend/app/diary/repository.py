@@ -46,6 +46,15 @@ class DiaryRepository:
             "p_job_id": job_id, "p_lease_token": lease_token, "p_error_code": error_code,
         })
 
+    async def image_summary(self, job: dict):
+        rows = await self.execute(self.database.table("conversation_summaries")
+            .select("current_feeling,main_concerns,emotion_tags,confirmed_at")
+            .eq("id", job["input_summary_id"]).eq("member_id", job["member_id"])
+            .eq("conversation_id", job["conversation_id"]).limit(1))
+        if not rows or rows[0]["confirmed_at"] is None:
+            raise AppError(409, "CONFLICT", "확정한 요약을 찾을 수 없습니다.")
+        return rows[0]
+
 
 def get_diary_repository(database: Annotated[AsyncClient, Depends(get_supabase)]) -> DiaryRepository:
     return DiaryRepository(database)
