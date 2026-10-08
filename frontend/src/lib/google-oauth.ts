@@ -4,15 +4,21 @@ const KEY = "gomin.google.navigation";
 const destinations = ["/", "/talk", "/collection", "/settings"];
 const fallback: Context = { origin: "/login", next: "/" };
 
+export function safeLoginDestination(next: unknown): string {
+  if (typeof next !== "string") return "/";
+  const uuid = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+  return destinations.includes(next) || new RegExp(`^/talk/${uuid}(?:/handoff/${uuid})?$`).test(next) ? next : "/";
+}
+
 export function saveGoogleContext(storage: RoutingStorage | null, origin: string, next: string | null) {
   try {
-    storage?.setItem(KEY, JSON.stringify({ origin: origin === "/signup" ? "/signup" : "/login", next: destinations.includes(next ?? "") ? next : "/" }));
+    storage?.setItem(KEY, JSON.stringify({ origin: origin === "/signup" ? "/signup" : "/login", next: safeLoginDestination(next) }));
   } catch { /* Navigation still works when browser storage is unavailable. */ }
 }
 export function readGoogleContext(storage: RoutingStorage | null): Context {
   try {
     const value = JSON.parse(storage?.getItem(KEY) ?? "null");
-    return { origin: value?.origin === "/signup" ? "/signup" : "/login", next: destinations.includes(value?.next) ? value.next : "/" };
+    return { origin: value?.origin === "/signup" ? "/signup" : "/login", next: safeLoginDestination(value?.next) };
   } catch { return { ...fallback }; }
 }
 export function clearGoogleContext(storage: RoutingStorage | null) {

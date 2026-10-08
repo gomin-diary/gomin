@@ -47,6 +47,8 @@
 ## 화면·사용자 흐름
 
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
+- [털어놓기 MVP 구현·후속 전달](engineering/talk-mvp.md): 입력·저장·마무리·요약·확정 API, 응답 대기 처리와 김지민 담당 전달 계약
+- [GOMIN-69 털어놓기 MVP 공유 설계](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3670056): 담당 경계·원문 범위·저장과 실행 방식의 검토안
 - [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [가이드 화면](frontend/guide-ui.md): 이용 단계, PC·모바일 배치와 Figma 일러스트 출처
 - [컬렉션 조회 화면](frontend/collection-ui.md): 본인 저장 목록·상세 API 연동, PC 필름·팝업과 모바일 상세
@@ -62,6 +64,7 @@
 ## 개발·협업
 
 - [코딩과 검증 규칙](engineering/coding-conventions.md)
+- [털어놓기 MVP 검증](engineering/talk-mvp-qa.md): GOMIN-71 검수 22개, 모의 검증·실제 AI·DB 적용·배포 구분
 - [커밋 메시지 작성 규칙](engineering/commit-messages.md): 타입별 기준과 작성 예시
 - [PR 작성 규칙](engineering/pull-requests.md): 프로젝트 스킬, Jira 작업 번호·변경 내용·개조체 작성 기준
 - [이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
