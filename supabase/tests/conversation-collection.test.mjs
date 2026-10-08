@@ -372,6 +372,21 @@ test('collection detail follows the original result summary after a newer summar
   await rejectsCode(q('select get_collection_entry($1,$2)', [c.member_id, randomUUID()]), 'P0002');
 });
 
+test('job state exposes only its completed result including unsaved results, with ownership checks', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const j = await submit(c, s);
+  const state = async member => (await q('select get_diary_image_job($1,$2) job', [member, j.id]))[0].job;
+  assert.equal((await state(c.member_id)).result, null);
+  const completed = await finalize(await claim(j.id));
+  assert.equal((await state(c.member_id)).result.id, completed.id);
+  assert.equal((await state(c.member_id)).result.collection_entry_id, null);
+  await q('select save_collection_result($1,$2)', [c.member_id, completed.id]);
+  assert.ok((await state(c.member_id)).result.collection_entry_id);
+  await rejectsCode(state(randomUUID()), 'P0002');
+  await rejectsCode(q('select get_diary_result($1,$2)', [randomUUID(), completed.id]), 'P0002');
+});
+
 test('job inputs cannot change on retry, and failed jobs can queue again without changing identity', async () => {
   const { c } = await context();
   const j = await job(c);

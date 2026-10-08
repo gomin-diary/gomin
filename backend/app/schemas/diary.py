@@ -46,3 +46,23 @@ class CollectionDetail(CollectionListItem):
     completed_at: datetime
     current_feeling: str
     main_concerns: list[str]
+
+
+class DiaryResult(BaseModel):
+    id: UUID
+    generation_job_id: UUID
+    summary_id: UUID
+    conversation_id: UUID
+    title: str
+    diary_date: date
+    completed_at: datetime
+    encouragement_text: str
+    current_feeling: str
+    main_concerns: list[str]
+    emotion_tags: list[str]
+    collection_entry_id: UUID | None
+    saved_at: datetime | None
+
+
+class ImageJobState(ImageJob):
+    result: DiaryResult | None

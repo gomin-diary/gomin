@@ -12,6 +12,7 @@ from app.diary.repository import DiaryRepository, get_diary_repository
 from app.diary.pagination import decode_cursor, encode_cursor
 from app.schemas.auth import MemberData
 from app.schemas.diary import CollectionDetail, CollectionEntry, CollectionListItem, CollectionPage, ImageJob, ImageRequest
+from app.schemas.diary import DiaryResult, ImageJobState
 from app.schemas.response import ApiSuccess
 from app.storage.dependencies import get_storage_settings
 
@@ -83,3 +84,25 @@ async def collection_detail(
     row = await repository.rpc("get_collection_entry", {"p_member_id": str(member.id), "p_entry_id": str(entry_id)})
     response.headers["Cache-Control"] = "no-store"
     return ApiSuccess(data=CollectionDetail.model_validate(row))
+
+
+@router.get("/diary-results/{result_id}", response_model=ApiSuccess[DiaryResult])
+async def diary_result(
+    result_id: UUID, response: Response,
+    member: Annotated[MemberData, Depends(require_member)],
+    repository: Annotated[DiaryRepository, Depends(get_diary_repository)],
+) -> ApiSuccess[DiaryResult]:
+    row = await repository.rpc("get_diary_result", {"p_member_id": str(member.id), "p_result_id": str(result_id)})
+    response.headers["Cache-Control"] = "no-store"
+    return ApiSuccess(data=DiaryResult.model_validate(row))
+
+
+@router.get("/image-jobs/{job_id}", response_model=ApiSuccess[ImageJobState])
+async def image_job_state(
+    job_id: UUID, response: Response,
+    member: Annotated[MemberData, Depends(require_member)],
+    repository: Annotated[DiaryRepository, Depends(get_diary_repository)],
+) -> ApiSuccess[ImageJobState]:
+    row = await repository.rpc("get_diary_image_job", {"p_member_id": str(member.id), "p_job_id": str(job_id)})
+    response.headers["Cache-Control"] = "no-store"
+    return ApiSuccess(data=ImageJobState.model_validate(row))

@@ -111,3 +111,14 @@ class DiaryAPITests(unittest.TestCase):
         self.repository.rpc.assert_awaited_with("get_collection_entry", {
             "p_member_id": str(self.member.id), "p_entry_id": row["id"],
         })
+
+    def test_job_query_excludes_internal_tokens_and_returns_no_incomplete_result(self):
+        row = {**self.repository.rpc.return_value, "result": None}
+        self.repository.rpc.return_value = row
+        response = self.client.get(f"/api/v1/image-jobs/{row['id']}")
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["data"]["result"])
+        self.assertNotIn("lease_token", response.text)
+        self.repository.rpc.assert_awaited_with("get_diary_image_job", {
+            "p_member_id": str(self.member.id), "p_job_id": row["id"],
+        })

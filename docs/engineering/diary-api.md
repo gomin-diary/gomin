@@ -43,6 +43,11 @@ Storage 업로드 이후 커밋이 실패하면 객체가 남을 수 있으며 �
 
 ## 컬렉션 저장
 
+`GET /api/v1/image-jobs/{job_id}`는 소유자의 작업 상태와 성공한 작업의 동일 결과를 반환한다.
+미완료·실패 작업의 result는 null이다. `GET /api/v1/diary-results/{result_id}`는 저장 여부와 관계없이
+본인의 완료 결과·원본 요약을 조회한다. collection_entry_id와 saved_at으로 저장 여부를 구분한다.
+내부 실행 토큰·fingerprint·Storage 경로는 공개 응답에 포함하지 않는다.
+
 `POST /api/v1/diary-results/{result_id}/collection-entry`는 완료 결과 ID만 사용한다.
 세션 회원이 소유한 결과를 `save_collection_result` RPC로 저장하고 항목 ID·결과 ID·최초 saved_at을 반환한다.
 동일 결과는 기존 항목을 반환하여 재클릭·재전송·응답 유실 복구 때 저장 시각을 바꾸지 않는다.
