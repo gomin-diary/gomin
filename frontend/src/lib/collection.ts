@@ -126,6 +126,9 @@ export type CollectionSnapshot = {
   detailStatus: LoadState;
   detail: CollectionDetail | null;
   detailNotFound: boolean;
+  nextCursor: string | null;
+  loadingMore: boolean;
+  moreError: boolean;
 };
 export const COLLECTION_PAGE_SIZE = 6;
 export function visibleCollectionItems(state: CollectionSnapshot) {
@@ -137,6 +140,7 @@ export function createCollectionController(memberId: string, repository: Collect
   let state: CollectionSnapshot = {
     status: "loading", items: [], category: "전체", page: 0,
     selectedId: null, detailStatus: "loading", detail: null, detailNotFound: false,
+    nextCursor: null, loadingMore: false, moreError: false,
   };
   const initial = state;
   const listeners = new Set<() => void>();
@@ -153,13 +157,30 @@ export function createCollectionController(memberId: string, repository: Collect
   const load = async () => {
     const version = ++listVersion;
     listAbort?.abort(); listAbort = new AbortController();
-    update({ status: "loading" });
+    update({ status: "loading", loadingMore: false, moreError: false });
     try {
-      const items = await repository.list(memberId, listAbort.signal);
+      const result = repository.page ? await repository.page(null, state.category, listAbort.signal)
+        : { items: await repository.list(memberId, listAbort.signal), nextCursor: null };
       if (version !== listVersion) return;
-      update({ status: "ready", items, page: 0 });
+      update({ status: "ready", items: result.items, nextCursor: result.nextCursor, page: 0 });
     } catch {
       if (version === listVersion) update({ status: "error", items: [] });
+    }
+  };
+  const loadMore = async () => {
+    if (!repository.page || !state.nextCursor || state.loadingMore || state.status !== "ready") return false;
+    const version = listVersion;
+    update({ loadingMore: true, moreError: false });
+    try {
+      const result = await repository.page(state.nextCursor, state.category, listAbort?.signal);
+      if (version !== listVersion) return false;
+      const ids = new Set(state.items.map(item => item.id));
+      update({ items: [...state.items, ...result.items.filter(item => !ids.has(item.id))],
+               nextCursor: result.nextCursor, loadingMore: false });
+      return true;
+    } catch {
+      if (version === listVersion) update({ loadingMore: false, moreError: true });
+      return false;
     }
   };
   const select = async (id: string) => {
@@ -177,9 +198,16 @@ export function createCollectionController(memberId: string, repository: Collect
     getSnapshot: () => state,
     getServerSnapshot: () => initial,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    load, select, close,
-    filter: (category: CollectionCategory) => { close(); update({ category, page: 0 }); },
-    move: (direction: -1 | 1) => {
+    load, loadMore, select, close,
+    filter: (category: CollectionCategory) => {
+      close(); update({ category, page: 0 });
+      if (repository.page) void load();
+    },
+    move: async (direction: -1 | 1) => {
+      const version = listVersion;
+      if (direction === 1 && (state.page + 1) * COLLECTION_PAGE_SIZE >= visibleCollectionItems(state).length && state.nextCursor) {
+        if (!await loadMore() || version !== listVersion) return;
+      }
       const maxPage = Math.max(0, Math.ceil(visibleCollectionItems(state).length / COLLECTION_PAGE_SIZE) - 1);
       update({ page: Math.max(0, Math.min(maxPage, state.page + direction)) });
     },

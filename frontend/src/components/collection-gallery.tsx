@@ -117,7 +117,7 @@ function MemberCollection({ memberId }: { memberId: string }) {
     const observer = new ResizeObserver(([entry]) => setScale(entry.contentRect.width / 2280));
     observer.observe(wrapper);
     return () => observer.disconnect();
-  }, [state.status]);
+  }, [state.status, isMobile]);
 
   useEffect(() => {
     if (selected && !isMobile && dialog.current && !dialog.current.open) dialog.current.showModal();
@@ -167,7 +167,7 @@ function MemberCollection({ memberId }: { memberId: string }) {
             {state.items.length ? <button type="button" onClick={() => controller.filter("전체")}>전체 이야기 보기</button> : <Link href="/talk">털어놓기 시작하기</Link>}
           </div>
             : <>
-              <section className={styles.desktopFilm} aria-label="고민일기 필름" hidden={isMobile}>
+              {!isMobile && <section className={styles.desktopFilm} aria-label="고민일기 필름">
                 <button className={`${styles.arrow} ${styles.previous}`} type="button" aria-label="이전 기록" disabled={state.page === 0} onClick={() => controller.move(-1)}>‹</button>
                 <div className={styles.filmWrapper} ref={canvasWrapper}>
                   <div className={styles.filmCanvas} style={{ transform: `scale(${scale})` }}>
@@ -182,16 +182,19 @@ function MemberCollection({ memberId }: { memberId: string }) {
                     </button>)}
                   </div>
                 </div>
-                <button className={`${styles.arrow} ${styles.next}`} type="button" aria-label="다음 기록" disabled={start + COLLECTION_PAGE_SIZE >= items.length} onClick={() => controller.move(1)}>›</button>
+                <button className={`${styles.arrow} ${styles.next}`} type="button" aria-label="다음 기록" disabled={state.loadingMore || (start + COLLECTION_PAGE_SIZE >= items.length && !state.nextCursor)} onClick={() => void controller.move(1)}>›</button>
                 <span className={styles.srOnly} role="status">{items.length}개 중 {start + 1}부터 {start + pageItems.length}번째 이야기</span>
-              </section>
-              <section className={styles.mobileFilm} aria-label="고민일기 목록" hidden={!isMobile}>
+              </section>}
+              {isMobile && <section className={styles.mobileFilm} aria-label="고민일기 목록">
                 <div className={styles.mobileCards}>{items.map((item) => <button type="button" key={item.id} className={styles.mobileCard}
                   aria-label={`${formatDate(item.date)} ${item.title} 상세 보기`} onClick={(event) => open(item.id, event.currentTarget)}>
                   <RecordImage image={item.image} /><time dateTime={item.date}>{formatDate(item.date)}</time><span>{item.title}</span>
                 </button>)}</div>
+                {state.nextCursor && <button type="button" disabled={state.loadingMore} onClick={() => void controller.loadMore()}>이야기 더 보기</button>}
                 <p className={styles.mobileClosing}>모든 날들이<br />특별한 장면이 되는 곳. — 고민일기 ♡</p>
-              </section>
+              </section>}
+              {state.loadingMore && <p role="status">다음 이야기를 불러오는 중이에요…</p>}
+              {state.moreError && <div role="alert">다음 이야기를 불러오지 못했어요. <button type="button" onClick={() => void controller.loadMore()}>다시 불러오기</button></div>}
             </>}
       <footer className={styles.closing}><p>오늘도<br />좋은 하루가 되기를.</p><p>모든 감정이 특별한 장면이 되는 곳.<br />— 고민일기 ♡</p></footer>
     </div>

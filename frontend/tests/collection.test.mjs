@@ -110,3 +110,40 @@ test("rapid selection, closing and disposal discard delayed detail success/failu
   pending[3].resolve(collectionFixtures[3]); await fourth;
   assert.equal(controller.getSnapshot(), snapshot);
 });
+
+test('real pages append without duplication, preserve prior records after failure, and reset server filters', async () => {
+  const calls = [];
+  let fail = true;
+  const controller = createCollectionController(owner, { ...repository(), page: async (cursor, category) => {
+    calls.push({ cursor, category });
+    if (!cursor) return { items: collectionFixtures.slice(0, 6), nextCursor: 'next' };
+    if (fail) { fail = false; throw new Error('temporary'); }
+    return { items: [collectionFixtures[5], ...collectionFixtures.slice(6)], nextCursor: null };
+  } });
+  await controller.load();
+  await controller.move(1);
+  assert.equal(controller.getSnapshot().page, 0);
+  assert.equal(controller.getSnapshot().moreError, true);
+  assert.equal(controller.getSnapshot().items.length, 6);
+  await controller.move(1);
+  assert.equal(controller.getSnapshot().page, 1);
+  assert.equal(controller.getSnapshot().items.length, 8);
+  controller.filter('불안');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(calls.at(-1), { cursor: null, category: '불안' });
+  assert.equal(controller.getSnapshot().page, 0);
+});
+
+test('late additional page is discarded after a filter reset or account disposal', async () => {
+  const more = deferred();
+  const controller = createCollectionController(owner, { ...repository(), page: (cursor, category) => cursor
+    ? more.promise : Promise.resolve({ items: category === '전체' ? [collectionFixtures[0]] : [], nextCursor: category === '전체' ? 'next' : null }) });
+  await controller.load();
+  const loading = controller.loadMore();
+  controller.filter('슬픔');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  more.resolve({ items: [collectionFixtures[1]], nextCursor: null });
+  await loading;
+  assert.deepEqual(controller.getSnapshot().items, []);
+  assert.equal(controller.getSnapshot().category, '슬픔');
+});
