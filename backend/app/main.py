@@ -11,6 +11,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.sessions import router as sessions_router
 from app.api.routes.signup import router as signup_router
 from app.api.routes.google_oauth import router as google_oauth_router
+from app.api.routes.diary import router as diary_router
 from app.auth.google_provider import GoogleProvider
 from app.core.config import get_settings
 from app.core.exception_handlers import ERROR_RESPONSES, register_exception_handlers
@@ -45,3 +46,4 @@ app.include_router(auth_router)
 app.include_router(signup_router)
 
 app.include_router(google_oauth_router)
+app.include_router(diary_router)

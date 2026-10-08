@@ -12,6 +12,7 @@
 | `AI_API_KEY` | 빈 값 | 백엔드 전용 가상 키, 요청 구성 시 필수 |
 | `AI_TEXT_MODEL` | `gpt-5.4-mini` | 텍스트/프롬프트 요청 모델 |
 | `AI_IMAGE_MODEL` | 빈 값 | 제공자가 지원하는 이미지 모델, 이미지 요청 구성 시 필수 |
+| `AI_IMAGE_SIZE` | `1024x1024` | 이미지 접수 시 보관하는 제공자 해상도 옵션 |
 | `AI_IMAGE_RESPONSE_FORMAT` | `b64_json` | 허용하는 이미지 응답 형식 |
 | `AI_TIMEOUT_SECONDS` | `120` | 요청별 제한 시간, 0 초과 600 이하의 유한한 값 |
 

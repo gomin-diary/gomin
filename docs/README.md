@@ -18,6 +18,7 @@
 - [Google OAuth 흐름 관리](engineering/google-oauth-flow.md): 인증 호출 순서·상태 수명·화면 복귀·예외 처리의 관리 기준
 - [Supabase Storage 파일 저장 모듈](engineering/file-storage.md): Supabase 저장 모듈·의존성 주입·설정과 사용 방법
 - [Codyssey AI 요청 설정](engineering/ai-client.md): 서버 전용 가상 키·모델·요청 경로와 클라이언트 주입
+- [그림일기·컬렉션 API](engineering/diary-api.md): 요약 확정·이미지 접수와 서버 전용 트랜잭션
 
 ## 처음 설치할 때
 

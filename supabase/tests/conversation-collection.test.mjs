@@ -22,6 +22,11 @@ const tables = ['conversations', 'conversation_messages', 'conversation_summarie
 const q = async (sql, args = []) => (await db.query(sql, args)).rows;
 const rejectsCode = (operation, code) => assert.rejects(operation, error => error.code === code);
 
+async function submit(c, s, key = randomUUID(), fingerprint = 'fingerprint', model = 'image-test') {
+  return (await q(`select submit_diary_image($1,$2,$3,$4,$5,'text-test',$6,'1024x1024') as job`,
+    [c.member_id, c.id, s.id, key, fingerprint, model]))[0].job;
+}
+
 async function conversation(memberId) {
   if (!memberId) {
     [memberId] = (await q(`insert into members(email,name) values($1,'테스트 회원') returning id`,
@@ -78,6 +83,35 @@ test('adds six private business tables after the existing authentication migrati
     where relnamespace='public'::regnamespace and relname=any($1::text[]) order by relname`, [tables]);
   assert.equal(rows.length, 6);
   assert.ok(rows.every(row => row.relrowsecurity));
+});
+
+test('atomic image submission confirms once, deduplicates and rejects changed or stale inputs', async () => {
+  const { c } = await context();
+  const s = await summary(c, { confirmed: false });
+  const key = randomUUID();
+  const first = await submit(c, s, key);
+  const confirmed = (await q('select confirmed_at from conversation_summaries where id=$1', [s.id]))[0];
+  assert.equal((await submit(c, s, key)).id, first.id);
+  assert.deepEqual((await q('select confirmed_at from conversation_summaries where id=$1', [s.id]))[0], confirmed);
+  await rejectsCode(submit(c, s, key, 'changed'), 'P0001');
+  const other = await conversation();
+  await rejectsCode(submit(other, s), 'P0002');
+  await message(c, 2);
+  await rejectsCode(submit(c, s), 'P0001');
+  assert.equal((await submit(c, s, key)).id, first.id); // replay survives later summary changes
+});
+
+test('invalid options roll back confirmation and job creation, and RPC is server-only', async () => {
+  const { c } = await context();
+  const s = await summary(c, { confirmed: false });
+  await rejectsCode(submit(c, s, randomUUID(), 'fingerprint', ''), '23514');
+  assert.equal((await q('select confirmed_at from conversation_summaries where id=$1', [s.id]))[0].confirmed_at, null);
+  assert.equal((await q("select count(*)::int n from generation_jobs where input_summary_id=$1", [s.id]))[0].n, 0);
+  assert.equal((await q("select has_function_privilege('anon','submit_diary_image(uuid,uuid,uuid,uuid,text,text,text,text)','EXECUTE') ok"))[0].ok, false);
+  assert.equal((await q("select has_function_privilege('service_role','submit_diary_image(uuid,uuid,uuid,uuid,text,text,text,text)','EXECUTE') ok"))[0].ok, true);
+  await db.exec('set role service_role');
+  try { assert.equal((await submit(c, s)).status, 'queued'); }
+  finally { await db.exec('reset role'); }
 });
 
 test('rejects duplicate message submissions and duplicate sequence numbers', async () => {
