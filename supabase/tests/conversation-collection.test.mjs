@@ -8,7 +8,10 @@ const { PGlite } = await import(process.env.PGLITE_MODULE ?? '@electric-sql/pgli
 const db = new PGlite();
 after(() => db.close());
 await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
-  grant usage on schema public to service_role;`);
+  grant usage on schema public to service_role;
+  create schema storage;
+  create table storage.buckets(id text primary key,name text,public boolean,
+    file_size_limit bigint,allowed_mime_types text[]);`);
 const migrationDir = new URL('../migrations/', import.meta.url);
 for (const file of (await readdir(migrationDir)).filter(name => name.endsWith('.sql')).sort()) {
   await db.exec(await readFile(new URL(file, migrationDir), 'utf8'));
@@ -257,4 +260,25 @@ test('the service role can complete the summary-to-collection flow with only the
   } finally {
     await db.exec('reset role');
   }
+});
+
+test('MVP creates a result directly from an owned summary without an image job', async () => {
+  const { c } = await context();
+  const s = await summary(c, { confirmed: false });
+  const [{ n: before }] = await q('select count(*)::int n from generation_jobs');
+  await db.exec('set role service_role');
+  try {
+    await q('select prepare_diary_summary($1,$2)', [c.member_id, s.id]);
+    const [{ result: r }] = await q(`select create_diary_result($1,$2,'제목','위로',
+      'gomin-diary-images',$3) as result`, [c.member_id, s.id, randomUUID()]);
+    assert.equal(r.summary_id, s.id);
+    assert.equal(r.generation_job_id, null);
+    const [{ n: after }] = await q('select count(*)::int n from generation_jobs');
+    assert.equal(after, before);
+    await rejectsCode(q('select prepare_diary_summary($1,$2)', [randomUUID(), s.id]), 'P0002');
+    await rejectsCode(q(`select create_diary_result($1,$2,'제목','위로','private',$3)`,
+      [randomUUID(), s.id, randomUUID()]), 'P0002');
+    const [{ entry }] = await q('select save_collection_result($1,$2) as entry', [c.member_id, r.id]);
+    assert.equal(entry.source_result_id, r.id);
+  } finally { await db.exec('reset role'); }
 });

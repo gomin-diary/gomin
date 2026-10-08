@@ -6,6 +6,7 @@
 - [공통 API 응답 모델](engineering/api-response.md): 성공·오류 규격, 양쪽 모델과 호출·검증 방법
 - [공통 인증·DB 기반](engineering/auth-foundation.md): 인증 4개 테이블·DB 함수, 암호화·세션·쿠키와 직접 API 호출
 - [대화·컬렉션 ERD](engineering/conversation-collection-erd.md): 테이블·관계·제약조건, Supabase SQL과 ID 생성·재시도 관련 질문·답변
+- [요약 기반 그림일기 MVP](engineering/diary-mvp.md): 직접 이미지 생성, 컬렉션 저장·목록·상세 조회
 - [공개 문서 화면](frontend/docs-ui.md): `/docs/` 공개 범위, 문서 생성·링크·레이아웃과 배포
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
 - [회원가입 구현](engineering/signup.md): 이메일 인증·일회용 증표·약관·세션 API와 검증 범위
