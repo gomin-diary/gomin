@@ -26,6 +26,9 @@ async function submit(c, s, key = randomUUID(), fingerprint = 'fingerprint', mod
   return (await q(`select submit_diary_image($1,$2,$3,$4,$5,'text-test',$6,'1024x1024') as job`,
     [c.member_id, c.id, s.id, key, fingerprint, model]))[0].job;
 }
+async function claim(id) {
+  return (await q('select claim_diary_image($1,600) as job', [id]))[0].job;
+}
 
 async function conversation(memberId) {
   if (!memberId) {
@@ -112,6 +115,26 @@ test('invalid options roll back confirmation and job creation, and RPC is server
   await db.exec('set role service_role');
   try { assert.equal((await submit(c, s)).status, 'queued'); }
   finally { await db.exec('reset role'); }
+});
+
+test('claims one execution token, expiry fails without automatically retrying the provider', async () => {
+  const { c } = await context();
+  const s = await summary(c);
+  const j = await submit(c, s);
+  const running = await claim(j.id);
+  assert.equal(running.status, 'running');
+  assert.equal(running.attempt_count, 1);
+  assert.equal(running.options.image_model, 'image-test');
+  assert.ok(running.lease_token);
+  assert.equal(await claim(j.id), null);
+  await q("update generation_jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [j.id]);
+  await q('select expire_diary_image_leases()');
+  const [failed] = await q('select * from generation_jobs where id=$1', [j.id]);
+  assert.equal(failed.status, 'failed');
+  assert.equal(failed.error_code, 'LEASE_EXPIRED');
+  assert.equal(failed.lease_token, null);
+  assert.equal(await claim(j.id), null);
+  assert.equal((await submit(c, s, j.idempotency_key)).status, 'failed');
 });
 
 test('rejects duplicate message submissions and duplicate sequence numbers', async () => {

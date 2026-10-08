@@ -27,6 +27,12 @@ class DiaryRepository:
     async def rpc(self, name: str, params: dict):
         return await self.execute(self.database.rpc(name, params))
 
+    async def claim_image(self, job_id: str | None = None):
+        return await self.rpc("claim_diary_image", {"p_job_id": job_id})
+
+    async def expire_image_leases(self):
+        return await self.rpc("expire_diary_image_leases", {})
+
 
 def get_diary_repository(database: Annotated[AsyncClient, Depends(get_supabase)]) -> DiaryRepository:
     return DiaryRepository(database)

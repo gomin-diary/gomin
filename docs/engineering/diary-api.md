@@ -18,4 +18,13 @@
 `AI_IMAGE_SIZE` 기본값은 첨부 예제의 `1024x1024`이며 제공자 지원 규격으로 설정한다.
 요약은 상위 대화 기능에서 생성해 둔 DB 행을 사용한다.
 
+## 실행권과 재시작
+
+작업은 DB의 queued 행으로 남는다. `claim_diary_image`는 `FOR UPDATE SKIP LOCKED`로
+하나를 running으로 전환하고 실행별 토큰·시도 횟수·기본 600초 lease를 반환한다.
+브라우저 응답의 성공과 생성 완료는 별개이며 워커는 DB 큐를 사용한다.
+`expire_diary_image_leases`는 만료 작업을 LEASE_EXPIRED 실패로 전환한다.
+제공자 처리 여부가 불확실하므로 만료 작업을 자동으로 다시 호출하지 않는다.
+명시적으로 같은 작업을 재접수한 후 새 실행권을 받는 흐름에서 이전 토큰은 재사용할 수 없다.
+
 [AI 설정](ai-client.md) · [대화·컬렉션 ERD](conversation-collection-erd.md) · [문서 목록](../README.md)
