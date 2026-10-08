@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     supabase_secret_key: SecretStr
     storage_bucket: str = "gomin-files"
     storage_max_file_size_bytes: int = Field(default=10485760, gt=0)
+    diary_image_bucket: str = "gomin-diary-images"
+    diary_image_max_pixels: int = Field(default=16777216, gt=0, le=16777216)
     ai_base_url: HttpUrl = HttpUrl("https://copa.codyssey.kr")
     ai_api_key: SecretStr = SecretStr("")
     ai_text_model: str = Field(default="gpt-5.4-mini", min_length=1)
@@ -61,7 +63,7 @@ class Settings(BaseSettings):
             raise ValueError("SUPABASE_SECRET_KEY must be configured")
         return value
 
-    @field_validator("storage_bucket")
+    @field_validator("storage_bucket", "diary_image_bucket")
     @classmethod
     def validate_storage_bucket(cls, value: str) -> str:
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", value):

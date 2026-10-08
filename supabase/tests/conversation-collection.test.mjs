@@ -9,6 +9,10 @@ const db = new PGlite();
 after(() => db.close());
 await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
   grant usage on schema public to service_role;`);
+// PGlite has no Supabase Storage service. Model only the migration's bucket metadata.
+await db.exec(`create schema storage;
+  create table storage.buckets(id text primary key, name text, public boolean,
+    file_size_limit bigint, allowed_mime_types text[]);`);
 const migrationDir = new URL('../migrations/', import.meta.url);
 for (const file of (await readdir(migrationDir)).filter(name => name.endsWith('.sql')).sort()) {
   await db.exec(await readFile(new URL(file, migrationDir), 'utf8'));
