@@ -17,6 +17,7 @@
 .filmCard:focus-visible, .mobileCard:focus-visible { outline: 5px solid #fffcf5; outline-offset: 6px; }
 .photo { position: relative; width: 100%; aspect-ratio: 320 / 300; overflow: hidden; flex-shrink: 0; }
 .photo img { display: block; position: absolute; max-width: none; width: var(--image-width); height: auto; left: var(--image-left); top: var(--image-top); pointer-events: none; }
+.photo.apiPhoto img { position: static; width: 100%; height: 100%; object-fit: cover; }
 .arrow { position: absolute; z-index: 1; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: clamp(32px, calc(3.90625 * var(--unit)), 100px); aspect-ratio: 1; padding: 0 0 .07em; border: 0; border-radius: 50%; background: #fbf9f2; color: #2b5447; font: 400 clamp(28px, calc(3.125 * var(--unit)), 80px)/1 sans-serif; cursor: pointer; }
 .previous { left: 1.484375%; }
 .next { right: 1.5625%; }

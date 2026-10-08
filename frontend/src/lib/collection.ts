@@ -1,7 +1,7 @@
-/** Temporary view model for GOMIN-31; this is not a database schema. */
+/** Collection display model. IDs identify saved entries, not generation results. */
 export const collectionCategories = ["전체", "기쁨", "슬픔", "불안", "관계", "일상"] as const;
 export type CollectionCategory = typeof collectionCategories[number];
-export type CollectionImage = { src: string; width: number; left: number; top: number };
+export type CollectionImage = { src: string; width: number; left: number; top: number; accessPath?: string };
 export type CollectionItem = {
   id: string;
   date: string;
@@ -18,7 +18,65 @@ export type CollectionDetail = CollectionItem & {
 export type CollectionRepository = {
   list: (memberId: string, signal?: AbortSignal) => Promise<CollectionItem[]>;
   detail: (memberId: string, id: string, signal?: AbortSignal) => Promise<CollectionDetail>;
+  page?: (cursor: string | null, category: CollectionCategory, signal?: AbortSignal) => Promise<CollectionPage>;
 };
+export type CollectionPage = { items: CollectionItem[]; nextCursor: string | null };
+export type CollectionApi = <T>(path: string, init?: RequestInit) => Promise<T>;
+
+type ApiItem = { id: string; source_result_id: string; diary_date: string; title: string; emotion_tags: string[] };
+type ApiDetail = ApiItem & { encouragement_text: string; current_feeling: string; main_concerns: string[] };
+const entryPath = (id: string) => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw new CollectionNotFoundError();
+  return `/api/v1/collection/${id}`;
+};
+function mapItem(row: ApiItem): CollectionItem {
+  if (!row || typeof row.title !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(row.diary_date)
+      || !Array.isArray(row.emotion_tags) || !row.emotion_tags.every(tag => typeof tag === "string")) throw new Error("Invalid collection data");
+  return { id: row.id, date: row.diary_date, title: row.title,
+    image: { src: "", width: 1, left: 0, top: 0, accessPath: `${entryPath(row.id)}/image-url` },
+    categories: collectionCategories.filter((category): category is Exclude<CollectionCategory, "전체"> =>
+      category !== "전체" && row.emotion_tags.includes(category)) };
+}
+
+/** Inject the shared apiFetch; account IDs never become authorization parameters. */
+export function createApiCollectionRepository(request: CollectionApi): CollectionRepository {
+  const page = async (cursor: string | null, category: CollectionCategory, signal?: AbortSignal): Promise<CollectionPage> => {
+    const params = new URLSearchParams({ limit: "24" });
+    if (cursor) params.set("cursor", cursor);
+    if (category !== "전체") params.set("emotion", category);
+    const data = await request<{ items: ApiItem[]; next_cursor: string | null }>(`/api/v1/collection?${params}`, { signal });
+    if (!Array.isArray(data.items) || (data.next_cursor !== null && typeof data.next_cursor !== "string")) throw new Error("Invalid collection page");
+    return { items: data.items.map(mapItem), nextCursor: data.next_cursor };
+  };
+  return {
+    page,
+    async list(_memberId, signal) {
+      const items: CollectionItem[] = [], seen = new Set<string>();
+      let cursor: string | null = null;
+      do {
+        signal?.throwIfAborted();
+        const data = await page(cursor, "전체", signal);
+        items.push(...data.items);
+        cursor = data.nextCursor;
+        if (cursor && seen.has(cursor)) throw new Error("Repeated collection cursor");
+        if (cursor) seen.add(cursor);
+      } while (cursor);
+      return items;
+    },
+    async detail(_memberId, id, signal) {
+      try {
+        const row = await request<ApiDetail>(entryPath(id), { signal });
+        if (typeof row.encouragement_text !== "string" || typeof row.current_feeling !== "string"
+            || !Array.isArray(row.main_concerns) || !row.main_concerns.every(text => typeof text === "string")) throw new Error("Invalid collection detail");
+        return { ...mapItem(row), caption: row.encouragement_text, mind: row.current_feeling,
+                 concerns: row.main_concerns, emotions: row.emotion_tags };
+      } catch (error) {
+        if (error && typeof error === "object" && "status" in error && error.status === 404) throw new CollectionNotFoundError();
+        throw error;
+      }
+    },
+  };
+}
 export class CollectionNotFoundError extends Error {
   constructor() { super("기록을 찾을 수 없어요."); this.name = "CollectionNotFoundError"; }
 }

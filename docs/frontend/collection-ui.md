@@ -33,7 +33,18 @@ Figma 상세의 ‘이 이야기 이어서 보기’ 버튼은 현재 준비 중
 기존 `/talk`은 준비 화면이고 대화 재개 인터페이스가 없으므로 이전 대화를 재개하거나
 새 대화를 임의로 시작하지 않는다. 검색·수정·삭제·즐겨찾기·공개 공유는 포함하지 않는다.
 
-## 임시 조회 모델과 공통 더미 데이터
+## 실제 API 조회
+
+서비스 기본 화면은 `createApiCollectionRepository(apiFetch)`로 자체 세션의 컬렉션 API를 호출한다.
+공통 fixtures와 모의 Repository는 테스트에만 사용하며 `collectionPreview` 쿼리는 서비스에 적용하지 않는다.
+entry ID로 상세를 조회하고 diary_date·title·원본 요약을 화면 모델로 매핑한다.
+감정 필터는 같은 이름의 원본 감정 태그만 사용한다. 별도 자동 분류는 없다.
+표시되는 이미지는 항목 소유권 확인 API의 서명 URL을 사용하며 만료 전에 다시 발급한다.
+회원 변경과 화면 해제 때 진행 중 요청·서명 URL 상태는 폐기한다.
+
+목록의 커서 및 이미지 접근 계약은 [그림일기·컬렉션 API](../engineering/diary-api.md)를 따른다.
+
+## 더미 화면의 이전 검증 범위
 
 `frontend/src/lib/collection.ts`의 CollectionRepository는 목록·상세의 읽기 인터페이스다.
 화면은 저장소와 독립적인 controller를 사용하며 계정 ID 변경 시 controller와 조회 상태를
