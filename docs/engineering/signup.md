@@ -59,7 +59,7 @@ RLS를 적용하고 Data API 권한과 RPC 실행을 서버의 `service_role`로
 - `AUTH_HMAC_KEY`: 독립적으로 생성한 서버 전용 난수 키, 최소 32바이트. 미설정이면 이메일 인증을 HTTP 503으로 거부한다. 실제 키는 코드·문서·Jira에 넣지 않는다.
 - `AUTH_COOKIE_SECURE`: 기본 true. 로컬 HTTP에만 false를 사용한다.
 - `AUTH_TERMS_VERSION`, `AUTH_PRIVACY_VERSION`: 기본 `dev-2026-10-02`.
-- 메일 설정은 [메일 발송](email-delivery.md), 배포는 [배포 안내](../deployment/README.md)를 따른다.
+- 메일 설정은 [메일 발송](email-delivery.md), 배포는 [Render의 인증 설정](../deployment/render.md#회원가입-인증-설정)을 따른다.
 
 `frontend/src/content/legal.ts`에서 이용약관과 개인정보 수집·이용 동의의 개발용 초안을 관리한다.
 `/terms`, `/privacy`에서 전문과 버전을 열람하고 가입 화면에서 각각 동의한다. 전문 링크는 새 탭으로 열어 회원가입 상태를 유지한다.

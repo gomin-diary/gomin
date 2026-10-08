@@ -45,7 +45,7 @@ npm --prefix frontend run docs:generate
 
 `frontend/src/app/(service)/layout.tsx`가 서비스용 Provider·Toast·스타일을 관리한다. 루트 레이아웃은 공통 HTML과 메타데이터만 제공한다. `frontend/src/app/docs/`는 독립된 문서 레이아웃을 사용한다. 기존 서비스 URL은 유지되며 문서에서 서비스로 이동하면 서비스 인증 상태를 확인한다.
 
-Vercel의 Root Directory는 `frontend`를 사용하고 외부 파일 포함 옵션을 활성화한다. `frontend/vercel.json`의 `ignoreCommand`가 프론트엔드·루트 docs·루트 README 변경을 빌드 대상으로 포함한다. 자세한 설정은 [배포 안내](../deployment/README.md#프론트엔드--vercel)를 따른다.
+Vercel의 Root Directory는 `frontend`를 사용하고 외부 파일 포함 옵션을 활성화한다. `frontend/vercel.json`의 `ignoreCommand`가 프론트엔드·루트 docs·루트 README 변경을 빌드 대상으로 포함한다. 자세한 설정은 [Vercel 배포 안내](../deployment/vercel.md#공개-문서-빌드)를 따른다.
 
 ## 검증
 
