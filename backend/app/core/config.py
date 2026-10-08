@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     storage_max_file_size_bytes: int = Field(default=10485760, gt=0)
     diary_image_bucket: str = "gomin-diary-images"
     diary_image_max_pixels: int = Field(default=16777216, gt=0, le=16777216)
+    diary_image_url_seconds: int = Field(default=300, ge=60, le=3600)
     ai_base_url: HttpUrl = HttpUrl("https://copa.codyssey.kr")
     ai_api_key: SecretStr = SecretStr("")
     ai_text_model: str = Field(default="gpt-5.4-mini", min_length=1)

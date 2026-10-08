@@ -12,9 +12,10 @@ from app.diary.repository import DiaryRepository, get_diary_repository
 from app.diary.pagination import decode_cursor, encode_cursor
 from app.schemas.auth import MemberData
 from app.schemas.diary import CollectionDetail, CollectionEntry, CollectionListItem, CollectionPage, ImageJob, ImageRequest
-from app.schemas.diary import DiaryResult, ImageJobState
+from app.schemas.diary import DiaryResult, ImageAccess, ImageJobState
 from app.schemas.response import ApiSuccess
-from app.storage.dependencies import get_storage_settings
+from app.storage.dependencies import get_file_storage, get_storage_settings
+from app.storage.supabase import StorageSigningError, SupabaseFileStorage
 
 router = APIRouter(prefix="/api/v1", tags=["diary"])
 
@@ -106,3 +107,35 @@ async def image_job_state(
     row = await repository.rpc("get_diary_image_job", {"p_member_id": str(member.id), "p_job_id": str(job_id)})
     response.headers["Cache-Control"] = "no-store"
     return ApiSuccess(data=ImageJobState.model_validate(row))
+
+
+async def sign_owned_image(row: dict, storage: SupabaseFileStorage) -> ImageAccess:
+    try:
+        signed = await storage.signed_image(row["image_bucket"], row["image_object_key"])
+    except StorageSigningError:
+        raise AppError(503, "IMAGE_UNAVAILABLE", "이미지를 일시적으로 불러올 수 없습니다.") from None
+    return ImageAccess(url=signed.url, expires_at=signed.expires_at)
+
+
+@router.get("/diary-results/{result_id}/image-url", response_model=ApiSuccess[ImageAccess])
+async def result_image_url(
+    result_id: UUID, response: Response,
+    member: Annotated[MemberData, Depends(require_member)],
+    repository: Annotated[DiaryRepository, Depends(get_diary_repository)],
+    storage: Annotated[SupabaseFileStorage, Depends(get_file_storage)],
+) -> ApiSuccess[ImageAccess]:
+    row = await repository.rpc("get_diary_result", {"p_member_id": str(member.id), "p_result_id": str(result_id)})
+    response.headers["Cache-Control"] = "no-store"
+    return ApiSuccess(data=await sign_owned_image(row, storage))
+
+
+@router.get("/collection/{entry_id}/image-url", response_model=ApiSuccess[ImageAccess])
+async def collection_image_url(
+    entry_id: UUID, response: Response,
+    member: Annotated[MemberData, Depends(require_member)],
+    repository: Annotated[DiaryRepository, Depends(get_diary_repository)],
+    storage: Annotated[SupabaseFileStorage, Depends(get_file_storage)],
+) -> ApiSuccess[ImageAccess]:
+    row = await repository.rpc("get_collection_entry", {"p_member_id": str(member.id), "p_entry_id": str(entry_id)})
+    response.headers["Cache-Control"] = "no-store"
+    return ApiSuccess(data=await sign_owned_image(row, storage))

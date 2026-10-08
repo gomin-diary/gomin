@@ -65,4 +65,11 @@ emotion은 원본 emotion_tags의 정확한 문자열 일치로 전체 DB 목록
 `GET /api/v1/collection/{entry_id}`는 같은 회원의 항목→완료 결과→생성에 사용한 요약을 조인한다.
 최신 요약으로 바꾸지 않으며 주요 고민·감정 태그 순서도 원본대로 반환한다. 타인과 없는 항목은 같은 404다.
 
+## 비공개 이미지 조회
+
+`GET /api/v1/diary-results/{result_id}/image-url` 또는 `/api/v1/collection/{entry_id}/image-url`은
+소유권 확인 후 DB의 버킷·객체 경로로만 서명 URL을 발급한다. 반환값은 url과 expires_at이다.
+`DIARY_IMAGE_URL_SECONDS`는 기본 300초, 60~3600초이며 URL은 DB에 저장하지 않는다.
+만료 후 동일 API를 다시 호출하여 갱신한다. 서명 URL은 접근 권한이 있으므로 로그에 기록하지 않는다.
+
 [AI 설정](ai-client.md) · [대화·컬렉션 ERD](conversation-collection-erd.md) · [문서 목록](../README.md)

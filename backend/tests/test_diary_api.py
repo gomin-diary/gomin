@@ -12,6 +12,8 @@ from app.core.exception_handlers import register_exception_handlers
 from app.diary.repository import get_diary_repository
 from app.schemas.auth import MemberData
 from app.storage.dependencies import get_storage_settings
+from app.storage.dependencies import get_file_storage
+from app.core.errors import AppError
 from test_ai_client import settings
 
 
@@ -122,3 +124,18 @@ class DiaryAPITests(unittest.TestCase):
         self.repository.rpc.assert_awaited_with("get_diary_image_job", {
             "p_member_id": str(self.member.id), "p_job_id": row["id"],
         })
+
+    def test_image_signing_happens_after_ownership_and_never_uses_request_path(self):
+        storage = AsyncMock()
+        storage.signed_image.return_value = type("Signed", (), {
+            "url": "https://example.test/signed", "expires_at": datetime.now(timezone.utc)})()
+        self.app.dependency_overrides[get_file_storage] = lambda: storage
+        self.repository.rpc.return_value = {"image_bucket": "trusted", "image_object_key": "db-object"}
+        result_id = uuid4()
+        response = self.client.get(f"/api/v1/diary-results/{result_id}/image-url?path=untrusted")
+        self.assertEqual(response.status_code, 200)
+        storage.signed_image.assert_awaited_once_with("trusted", "db-object")
+        storage.signed_image.reset_mock()
+        self.repository.rpc.side_effect = AppError(404, "NOT_FOUND", "기록을 찾을 수 없습니다.")
+        self.assertEqual(self.client.get(f"/api/v1/diary-results/{uuid4()}/image-url").status_code, 404)
+        storage.signed_image.assert_not_awaited()

@@ -36,6 +36,10 @@ FastAPI의 호출 기능에서는 `Depends(get_file_storage)`로 모듈을 주�
 
 ## 설정
 
+`signed_image(bucket, path)`는 소유권을 확인한 DB 경로로만 호출한다. 서버 Storage의 동일 origin과
+객체 경로에 속하는 서명 URL을 확인하고 만료 시각과 함께 반환한다. 실패는 안전한 `StorageSigningError`다.
+그림일기 API의 소유권 검사와 URL 갱신은 [그림일기·컬렉션 API](diary-api.md)를 따른다.
+
 `backend/.env.example`을 기준으로 백엔드에서 설정한다.
 
 | 설정 | 기본값 | 의미 |

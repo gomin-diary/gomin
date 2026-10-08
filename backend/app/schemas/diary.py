@@ -66,3 +66,8 @@ class DiaryResult(BaseModel):
 
 class ImageJobState(ImageJob):
     result: DiaryResult | None
+
+
+class ImageAccess(BaseModel):
+    url: str
+    expires_at: datetime
