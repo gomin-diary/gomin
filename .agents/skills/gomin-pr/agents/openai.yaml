@@ -1,0 +1,4 @@
+interface:
+  display_name: "고민일기 PR 작성"
+  short_description: "Jira 키·관련 작업·변경 내용·개조체를 적용한 고민일기 PR 작성"
+  default_prompt: "$gomin-pr 스킬로 현재 변경사항의 PR 제목과 본문을 작성하고 요청한 범위에서 반영해줘."
