@@ -57,6 +57,11 @@ class DiaryRepository:
     async def list_entries(self, member_id: str):
         return await self.execute(self.database.rpc("get_collection_entries", {"p_member_id": member_id}))
 
+    async def entry(self, member_id: str, entry_id: str):
+        return await self.execute(self.database.rpc("get_collection_entry", {
+            "p_member_id": member_id, "p_entry_id": entry_id,
+        }))
+
 
 def get_diary_repository(database: Annotated[AsyncClient, Depends(get_supabase)]):
     return DiaryRepository(database)
