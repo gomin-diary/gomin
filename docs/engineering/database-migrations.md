@@ -65,4 +65,4 @@ Supabase는 `supabase_migrations.schema_migrations`에서 적용 이력을 관�
 - 이력 불일치를 숨기려고 `--include-all`, 적용 기록 삭제, 운영 `db reset`을 사용하지 않는다.
 - 이미 적용된 변경을 되돌릴 때도 새로운 보정 마이그레이션을 작성한다. 삭제된 데이터 복구가 필요하면 사전에 준비한 백업·복구 절차를 사용한다.
 
-[Supabase 마이그레이션](https://supabase.com/docs/guides/deployment/database-migrations) · [Supabase 환경 관리](https://supabase.com/docs/guides/deployment/managing-environments) · [배포 안내](../deployment/README.md) · [문서 목록](../README.md)
+[Supabase 마이그레이션](https://supabase.com/docs/guides/deployment/database-migrations) · [Supabase 환경 관리](https://supabase.com/docs/guides/deployment/managing-environments) · [DB 운영 설정](../deployment/supabase-database.md) · [문서 목록](../README.md)

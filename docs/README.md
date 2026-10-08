@@ -50,6 +50,11 @@
 
 ## 배포·운영
 
-- [Vercel / Render / Supabase Cloud 배포](deployment/README.md): 서비스별 설정, Supabase 마이그레이션 워크플로, 메일 발신 도메인과 배포 후 확인
+- [배포·운영 개요](deployment/README.md): 서비스 구성, 공통 배포 순서와 배포 후 확인
+- [Vercel — Next.js](deployment/vercel.md): 프론트엔드 빌드·환경변수·공개 문서와 배포 확인
+- [Render — FastAPI·Uvicorn](deployment/render.md): 백엔드 실행·인증·Google OAuth·메일 설정과 배포 확인
+- [Supabase — 데이터베이스](deployment/supabase-database.md): Data API·서버 연결·운영 마이그레이션과 DB 상태 확인
+- [Supabase — Storage](deployment/supabase-storage.md): 업로드 모듈·버킷·크기·MIME 제한과 운영 확인 범위
+- [UptimeRobot — 모니터링](deployment/uptimerobot.md): 백엔드 상태 API의 5분 간격 확인·이메일 알림과 장애 대응
 
 [프로젝트 README](../README.md)

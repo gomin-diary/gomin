@@ -63,4 +63,4 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests
 
 실제 SDK와 HTTPX MockTransport로 파일 바이트·MIME·버킷·UUID 경로·덮어쓰기 금지·크기 검사·안전한 오류를 확인한다. 실제 Supabase Storage 저장은 대상 환경에서 별도 통합 확인이 필요하다.
 
-[Supabase Python 파일 업로드](https://supabase.com/docs/reference/python/storage-from-upload) · [문서 목록](../README.md)
+[Supabase Python 파일 업로드](https://supabase.com/docs/reference/python/storage-from-upload) · [Storage 운영 설정](../deployment/supabase-storage.md) · [문서 목록](../README.md)
