@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from httpx import AsyncClient as AsyncHttpClient, Timeout
 
+from app.ai.client import CodysseyClient
 from app.api.routes.health import router as health_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.sessions import router as sessions_router
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     async with AsyncHttpClient(timeout=Timeout(10, connect=5)) as http_client:
         app.state.supabase = await create_supabase_client(settings, http_client)
         app.state.google_provider = GoogleProvider(http_client, settings)
+        app.state.ai_client = CodysseyClient(http_client, settings)
         yield
 
 

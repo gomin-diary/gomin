@@ -40,6 +40,7 @@ PostgreSQL 주소는 DB 관리 도구용입니다. 앱은 Supabase Data API로 �
 - Google 로그인에는 `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `AUTH_OAUTH_ENCRYPTION_KEY`를 백엔드에 설정한다. 기본 `AUTH_FRONTEND_ORIGIN`은 `http://127.0.0.1:3000`, `GOOGLE_OAUTH_REDIRECT_URI`는 `http://127.0.0.1:8000/api/v1/auth/google/callback`이며 Google Cloud 클라이언트에 같은 콜백을 등록한다. localhost를 사용하면 프론트 접속·API 주소·Origin·CORS·콜백을 모두 localhost로 바꾼다. [Google OAuth 관리 문서](../engineering/google-oauth-flow.md)의 설정 표를 따른다.
 - 로컬 키 확인은 개발자가 자신의 터미널에서 수행하고 출력은 공유하지 않는다. AI 에이전트는 키 조회 명령을 실행하거나 실제 환경 파일을 읽지 않는다.
 - 파일 저장 모듈은 기존 Supabase 서버 설정과 `STORAGE_BUCKET`, `STORAGE_MAX_FILE_SIZE_BYTES`를 사용한다. `STORAGE_BUCKET`에는 Supabase에 미리 준비된 버킷 ID를 지정하며 기본값은 `gomin-files`다. 모듈은 실제 파일 바이트 수를 검사하며 기본 제한은 10MiB다. Supabase의 기존 버킷 제한도 적용된다. [파일 저장 모듈 안내](../engineering/file-storage.md)를 따른다.
+- Codyssey AI 요청에는 백엔드 전용 `AI_API_KEY`를 설정한다. `AI_BASE_URL` 기본값은 `https://copa.codyssey.kr`이며 `/v1` 경로를 붙이지 않는다. `AI_TEXT_MODEL` 기본값은 `gpt-5.4-mini`이고 이미지 모델은 `AI_IMAGE_MODEL`로 별도 지정한다. 키·이미지 모델이 없으면 해당 요청 구성 시 거절한다. [AI 요청 설정](../engineering/ai-client.md)에서 경로·헤더·제한 시간과 모듈 사용 방법을 확인한다.
 
 실행 순서는 [서버 개별 실행](manual-run.md), 스키마 변경 절차는 [코딩과 검증 규칙](../engineering/coding-conventions.md)을 참고한다.
 
