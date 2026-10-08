@@ -6,10 +6,10 @@ import { PageShell } from "@/components/page-shell";
 import { useAuth } from "@/providers/auth-provider";
 import { useUiStore } from "@/providers/ui-store-provider";
 import {
-  collectionCategories, COLLECTION_PAGE_SIZE, createCollectionController, createMockCollectionRepository,
-  visibleCollectionItems, type CollectionDetail, type CollectionImage, type CollectionScenario,
+  collectionCategories, COLLECTION_PAGE_SIZE, createCollectionController,
+  visibleCollectionItems, type CollectionDetail, type CollectionImage,
 } from "@/lib/collection";
-import { collectionFixtures } from "@/lib/collection-fixtures";
+import { createApiCollectionRepository } from "@/lib/collection-api";
 import { filmPerforations } from "@/lib/collection-film";
 import styles from "./collection-gallery.module.css";
 
@@ -40,7 +40,6 @@ function RecordImage({ image, hero = false }: { image: CollectionImage; hero?: b
     "--image-top": `${image.top * 100}%`,
   } as CSSProperties;
   return <div className={`${styles.photo} ${hero ? styles.heroPhoto : ""}`} style={style}>
-    {/* The view model can replace this mock crop with an ordinary API image (1, 0, 0). */}
     {/* eslint-disable-next-line @next/next/no-img-element */}
     <img src={image.src} alt="" width={1672} height={941} />
   </div>;
@@ -85,14 +84,7 @@ export function CollectionGallery() {
 }
 
 function MemberCollection({ memberId }: { memberId: string }) {
-  const [controller] = useState(() => {
-    let scenario: CollectionScenario = "normal";
-    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-      const value = new URL(window.location.href).searchParams.get("collectionPreview");
-      if (value === "empty" || value === "error" || value === "detail-error" || value === "slow") scenario = value;
-    }
-    return createCollectionController(memberId, createMockCollectionRepository(collectionFixtures, { scenario, delay: scenario === "slow" ? 2500 : 250 }));
-  });
+  const [controller] = useState(() => createCollectionController(memberId, createApiCollectionRepository()));
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getServerSnapshot);
   const isMobile = useSyncExternalStore(subscribeViewport, mobileSnapshot, serverViewport);
   const dialog = useRef<HTMLDialogElement>(null);
