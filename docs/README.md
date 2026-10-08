@@ -37,7 +37,7 @@
 - [Supabase 마이그레이션 관리](engineering/database-migrations.md): SQL 작성·검토, 로컬·PR 검증, 운영 적용과 실패 처리
 - [SMTP·Resend 이메일 발송](engineering/email-delivery.md): 모듈 설정·호출과 발송 오류 처리
 - [커밋 메시지 작성 규칙](engineering/commit-messages.md): 타입별 기준과 작성 예시
-- [PR 작성 규칙](engineering/pull-requests.md): 관련 작업 번호와 변경 내용·기능 테스트 범위
+- [PR 작성 규칙](engineering/pull-requests.md): 프로젝트 스킬, Jira 작업 번호·변경 내용·개조체 작성 기준
 - [이슈 유형과 작업 분해 기준](engineering/jira-issue-guide.md)
 - [설계문서 보관 규칙](engineering/design-document-storage.md): 로컬 제외 경로, 공유 설계문서 등록과 관련 작업 연결
 - [공개 문서 영역 설계 — 검토안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3670018): 원본 Markdown을 유지하는 `/docs/` 공개 화면 설계
