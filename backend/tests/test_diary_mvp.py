@@ -1,14 +1,16 @@
 import base64
 import json
+from pathlib import Path
 from types import SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 from fastapi import FastAPI
 import httpx
 
 from app.ai.client import CodysseyClient, GeminiClient
+from app.ai.client import MORI_REFERENCE_PATH
 from app.ai.dependencies import get_ai_client, get_image_ai_client
 from app.api.routes.diary import router
 from app.auth.session import require_member
@@ -93,7 +95,11 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("x-goog-api-key", self.requests[0].headers)
         self.assertEqual(self.requests[1].headers["x-goog-api-key"], "gemini-test-only")
         self.assertNotIn("Authorization", self.requests[1].headers)
-        self.assertEqual(json.loads(self.requests[1].content)["contents"][0]["parts"][0]["text"], "숲의 동물")
+        parts = json.loads(self.requests[1].content)["contents"][0]["parts"]
+        self.assertEqual(parts[-1]["text"], "숲의 동물")
+        self.assertIn("Mori", parts[0]["text"])
+        self.assertEqual(parts[1]["inlineData"]["mimeType"], "image/png")
+        self.assertEqual(base64.b64decode(parts[1]["inlineData"]["data"], validate=True), MORI_REFERENCE_PATH.read_bytes())
         self.assertEqual(self.storage.upload.call_args.args[0], encoded_image())
         self.repository.create_result.assert_awaited_once()
 
@@ -137,6 +143,14 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([request.url.host for request in self.requests], ["copa.codyssey.kr"])
         self.storage.upload.assert_not_awaited()
         self.repository.create_result.assert_not_awaited()
+
+    async def test_missing_mori_reference_returns_configuration_error_before_copa(self):
+        with patch("app.ai.client.MORI_REFERENCE_PATH", Path("/missing-mori-reference.png")):
+            response = await self.client.post("/api/v1/diary-images", json={"summary_id": self.summary_id})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["error"]["code"], "AI_NOT_CONFIGURED")
+        self.assertEqual(self.requests, [])
+        self.storage.upload.assert_not_awaited()
 
     async def test_save_returns_entry_and_never_regenerates_image(self):
         for _ in range(2):

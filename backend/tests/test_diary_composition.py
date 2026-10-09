@@ -14,6 +14,7 @@ class DiaryCompositionTests(unittest.IsolatedAsyncioTestCase):
             body = json.loads(request.content)
             self.assertEqual(body["model"], "gpt-5.4-mini")
             self.assertEqual(str(request.url), "https://copa.codyssey.kr/v1/chat/completions")
+            self.assertIn("모리(Mori)", body["messages"][0]["content"])
             submitted = json.loads(body["messages"][1]["content"])
             self.assertEqual(submitted, {"current_feeling": "불안해요", "main_concerns": ["시험"], "emotion_tags": ["불안"]})
             return httpx.Response(200, json={"choices": [{"finish_reason": finish_reason,
@@ -25,7 +26,7 @@ class DiaryCompositionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_model_and_summary_only_data_are_used_and_valid_output_is_returned(self):
         output = {"title": "시험 앞의 마음", "encouragement_text": "한 걸음씩 준비해도 괜찮아요",
-                  "image_prompt": "시험을 앞둔 토끼가 푸른 숲에서 쉬는 따뜻한 그림일기"}
+                  "image_prompt": "시험을 앞둔 모리가 푸른 숲에서 쉬는 따뜻한 그림일기"}
         result = await self.compose(json.dumps(output))
         self.assertEqual(result.model_dump(), output)
 

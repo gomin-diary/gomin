@@ -3,10 +3,24 @@ import base64
 import binascii
 import json
 import re
+from pathlib import Path
 
 import httpx
 
 from app.core.config import Settings
+
+
+MORI_REFERENCE_PATH = Path(__file__).resolve().parents[1] / "assets" / "mori.png"
+MORI_REFERENCE_MAX_BYTES = 2 * 1024 * 1024
+MORI_IMAGE_INSTRUCTIONS = (
+    "Create a warm diary illustration starring Mori, the character in the attached reference image. "
+    "Preserve Mori's identity, fluffy ivory fur, long floppy ears, black eyes, pink cheeks, "
+    "two-leaf sprout on the head, green backpack, proportions and soft watercolor illustration style. "
+    "Use this exact character instead of replacing it with another animal described in the scene. "
+    "Adapt the pose, expression and surroundings to the scene description below. "
+    "Do not copy the reference's plain background; create a complete scene. "
+    "Do not include readable text or real human faces."
+)
 
 
 class AIConfigurationError(Exception):
@@ -98,6 +112,19 @@ class CodysseyClient(_ProviderClient):
 class GeminiClient(_ProviderClient):
     def __init__(self, http_client: httpx.AsyncClient, settings: Settings) -> None:
         super().__init__(http_client, settings, timeout_seconds=settings.gemini_timeout_seconds)
+        self._mori_reference_data: str | None = None
+
+    def _reference_image_data(self) -> str:
+        if self._mori_reference_data is None:
+            try:
+                with MORI_REFERENCE_PATH.open("rb") as reference:
+                    data = reference.read(MORI_REFERENCE_MAX_BYTES + 1)
+            except OSError:
+                raise AIConfigurationError("Mori reference image must be a readable PNG") from None
+            if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > MORI_REFERENCE_MAX_BYTES:
+                raise AIConfigurationError("Mori reference image must be a PNG within 2 MiB")
+            self._mori_reference_data = base64.b64encode(data).decode("ascii")
+        return self._mori_reference_data
 
     def _headers(self) -> dict[str, str]:
         key = self.settings.gemini_api_key.get_secret_value()
@@ -109,12 +136,17 @@ class GeminiClient(_ProviderClient):
         if not self.settings.gemini_image_model:
             raise AIConfigurationError("GEMINI_IMAGE_MODEL must be configured")
         self._headers()
+        self._reference_image_data()
 
     def build_image_request(self, prompt: str) -> httpx.Request:
         self.validate_configuration()
         return self.http_client.build_request(
             "POST", self.settings.gemini_image_url, headers=self._headers(),
-            json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            json={"contents": [{"role": "user", "parts": [
+                      {"text": MORI_IMAGE_INSTRUCTIONS},
+                      {"inlineData": {"mimeType": "image/png", "data": self._reference_image_data()}},
+                      {"text": prompt},
+                  ]}],
                   "generationConfig": {"responseModalities": ["TEXT", "IMAGE"],
                                        "imageConfig": {"aspectRatio": self.settings.gemini_image_aspect_ratio}}},
             timeout=self.timeout_seconds,

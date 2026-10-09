@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from types import SimpleNamespace
@@ -9,6 +10,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.ai import AIConfigurationError, CodysseyClient, GeminiClient
+from app.ai.client import MORI_IMAGE_INSTRUCTIONS, MORI_REFERENCE_PATH
 from app.ai.dependencies import get_ai_client, get_image_ai_client
 from app.core.config import Settings
 
@@ -129,7 +131,11 @@ class AIClientTests(unittest.IsolatedAsyncioTestCase):
             "model": "gpt-5.4-mini", "messages": messages,
         })
         self.assertEqual(json.loads(requests[1].content), {
-            "contents": [{"role": "user", "parts": [{"text": "확정 요약의 그림"}]}],
+            "contents": [{"role": "user", "parts": [
+                {"text": MORI_IMAGE_INSTRUCTIONS},
+                {"inlineData": {"mimeType": "image/png", "data": base64.b64encode(MORI_REFERENCE_PATH.read_bytes()).decode("ascii")}},
+                {"text": "확정 요약의 그림"},
+            ]}],
             "generationConfig": {"responseModalities": ["TEXT", "IMAGE"], "imageConfig": {"aspectRatio": "16:9"}},
         })
 

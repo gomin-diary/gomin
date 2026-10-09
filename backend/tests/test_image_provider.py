@@ -1,11 +1,15 @@
 import asyncio
 import base64
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 import httpx
 
 from app.ai import AIConfigurationError, AIRequestError, GeminiClient
+from app.ai.client import MORI_IMAGE_INSTRUCTIONS, MORI_REFERENCE_PATH, MORI_REFERENCE_MAX_BYTES
 from test_ai_client import settings
 
 
@@ -29,7 +33,11 @@ class ImageProviderTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(str(request.url), "https://generativelanguage.googleapis.com/v1beta/models/image-example:generateContent")
             self.assertEqual(request.headers["x-goog-api-key"], "test-only")
             self.assertEqual(json.loads(request.content), {
-                "contents": [{"role": "user", "parts": [{"text": "고민을 담은 그림"}]}],
+                "contents": [{"role": "user", "parts": [
+                    {"text": MORI_IMAGE_INSTRUCTIONS},
+                    {"inlineData": {"mimeType": "image/png", "data": base64.b64encode(MORI_REFERENCE_PATH.read_bytes()).decode("ascii")}},
+                    {"text": "고민을 담은 그림"},
+                ]}],
                 "generationConfig": {"responseModalities": ["TEXT", "IMAGE"], "imageConfig": {"aspectRatio": "1:1"}},
             })
             return httpx.Response(200, json=image_response(base64.b64encode(data).decode()))
@@ -115,3 +123,26 @@ class ImageProviderTests(unittest.IsolatedAsyncioTestCase):
             "thought": True, "inlineData": {"mimeType": "image/png", "data": "dGhvdWdodA=="},
         })
         self.assertEqual(await self.generate(lambda r: httpx.Response(200, json=body)), b"final")
+
+    def test_bundled_reference_matches_frontend_mori_and_is_valid_png(self):
+        from PIL import Image
+
+        source = Path(__file__).resolve().parents[2] / "frontend/public/images/character/mori.png"
+        self.assertEqual(MORI_REFERENCE_PATH.read_bytes(), source.read_bytes())
+        self.assertLessEqual(MORI_REFERENCE_PATH.stat().st_size, MORI_REFERENCE_MAX_BYTES)
+        with Image.open(MORI_REFERENCE_PATH) as reference:
+            self.assertEqual(reference.format, "PNG")
+            reference.verify()
+
+    async def test_missing_or_invalid_reference_never_sends(self):
+        with TemporaryDirectory() as directory:
+            for name in ("missing.png", "invalid.png", "oversized.png"):
+                path = Path(directory) / name
+                if name == "invalid.png":
+                    path.write_bytes(b"not a PNG")
+                elif name == "oversized.png":
+                    path.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * MORI_REFERENCE_MAX_BYTES)
+                with self.subTest(name=name), patch("app.ai.client.MORI_REFERENCE_PATH", path):
+                    with self.assertRaises(AIConfigurationError) as caught:
+                        await self.generate(lambda r: self.fail("must not send without Mori"))
+                    self.assertNotIn(directory, str(caught.exception))

@@ -57,7 +57,13 @@
 `AI_API_KEY`를 Bearer 인증으로 전달하고 `AI_TEXT_MODEL`과 system/user 메시지를 사용한다.
 요약의 지금의 마음·주요 고민·감정 태그만 텍스트 구성 요청에 포함한다.
 이미지 생성만 Gemini API의 `/v1beta/models/{모델 ID}:generateContent`에 POST한다.
-`GEMINI_API_KEY`를 `x-goog-api-key` 헤더로 전달하며 Copa에서 만든 이미지 프롬프트를 보낸다.
+`GEMINI_API_KEY`를 `x-goog-api-key` 헤더로 전달하며 Copa에서 만든 이미지 프롬프트와 모리 참조 이미지를 보낸다.
+모리는 [원본 mori.png](../../frontend/public/images/character/mori.png)의 캐릭터로,
+백엔드 단독 배포에도 포함되도록 [동일한 PNG](../../backend/app/assets/mori.png)를 서버 자산으로 보관한다.
+이미지를 교체할 때는 두 파일을 함께 갱신하며 테스트에서 동일 바이트와 PNG 형식을 확인한다.
+참조 파일은 실행 디렉터리와 무관한 모듈 기준 경로로 읽고, 서버 클라이언트가 Base64를 한 번 읽어 재사용한다.
+Gemini 요청의 `contents.parts`에는 모리 외형·그림체 유지 지시, `inlineData`의 PNG 바이트,
+요약 기반 장면 프롬프트를 함께 넣는다. 새싹·긴 귀·털색·표정 특징·초록 배낭을 유지하고 장면·자세·감정을 바꾼다.
 이미지 요청은 `contents`와 `generationConfig.responseModalities=["TEXT","IMAGE"]`,
 `generationConfig.imageConfig.aspectRatio`를 사용한다. 픽셀 크기를 직접 지정하지 않는다.
 응답의 첫 후보가 `finishReason=STOP`인 경우만 사용하며 안전 차단·중단·이미지 없는 응답은 실패 처리한다.
@@ -67,7 +73,7 @@ DB에는 이미지 bucket/object key만 저장하고 조회 시 서명 URL을 �
 기존 Copa용 `AI_API_KEY`, `AI_BASE_URL`, `AI_TEXT_MODEL`, `AI_TIMEOUT_SECONDS`는 유지한다.
 이미지용 `GEMINI_*` 설정을 추가한 뒤 백엔드를 재시작한다.
 기존 `AI_IMAGE_MODEL`, `AI_IMAGE_SIZE`, `AI_IMAGE_RESPONSE_FORMAT`은 사용하지 않는다.
-Gemini 키·이미지 모델이 누락되면 유료 Copa 요청 전에 설정 오류를 반환한다.
+Gemini 키·이미지 모델이나 모리 참조 파일이 누락되면 유료 Copa 요청 전에 설정 오류를 반환한다.
 키는 [Google AI Studio](https://aistudio.google.com/apikey)에서 발급하며,
 요청·응답 규격은 [Gemini 이미지 생성 공식 문서](https://ai.google.dev/gemini-api/docs/generate-content/image-generation)를 따른다.
 
