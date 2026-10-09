@@ -47,7 +47,7 @@
 ## 화면·사용자 흐름
 
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
-- [털어놓기 MVP 구현·후속 전달](engineering/talk-mvp.md): 입력·저장·마무리·요약·확정 API, 응답 대기 처리와 김지민 담당 전달 계약
+- [털어놓기 MVP 구현·후속 전달](engineering/talk-mvp.md): REST 채팅·Codyssey 응답과 요약·확정 API, 응답 대기 처리와 기존 그림일기 연결
 - [GOMIN-69 털어놓기 MVP 공유 설계](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3670056): 담당 경계·원문 범위·저장과 실행 방식의 검토안
 - [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [가이드 화면](frontend/guide-ui.md): 이용 단계, PC·모바일 배치와 Figma 일러스트 출처

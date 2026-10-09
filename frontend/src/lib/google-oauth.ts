@@ -7,7 +7,8 @@ const fallback: Context = { origin: "/login", next: "/" };
 export function safeLoginDestination(next: unknown): string {
   if (typeof next !== "string") return "/";
   const uuid = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
-  return destinations.includes(next) || new RegExp(`^/talk/${uuid}(?:/handoff/${uuid})?$`).test(next) ? next : "/";
+  return destinations.includes(next) || new RegExp(`^/talk/${uuid}(?:/handoff/${uuid})?$`).test(next)
+    || new RegExp(`^/talk\\?summary=${uuid}$`).test(next) ? next : "/";
 }
 
 export function saveGoogleContext(storage: RoutingStorage | null, origin: string, next: string | null) {

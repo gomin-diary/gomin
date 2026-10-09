@@ -9,10 +9,10 @@ test('unknown and prototype error codes always return safe text',()=>{
 });
 test('return route only admits exact allowed paths',()=>{
   const id='00000000-0000-4000-8000-000000000001';
-  for(const next of ['/talk','/collection','/settings','/',`/talk/${id}`,`/talk/${id}/handoff/${id}`]){
+  for(const next of ['/talk','/collection','/settings','/',`/talk/${id}`,`/talk/${id}/handoff/${id}`,`/talk?summary=${id}`]){
     const s=store();saveGoogleContext(s,'/login',next);assert.equal(readGoogleContext(s).next,next);
   }
-  for(const next of ['https://evil.test','//evil.test','/talk?x=1','/settings/../evil','javascript:alert(1)',`/talk/${id}?x=1`,`/talk/${id}/../evil`,'/talk/not-a-uuid']){
+  for(const next of ['https://evil.test','//evil.test','/talk?x=1','/settings/../evil','javascript:alert(1)',`/talk/${id}?x=1`,`/talk/${id}/../evil`,'/talk/not-a-uuid',`/talk?summary=${id}&next=//evil.test`,`/talk?summary=${id}#extra`,'/talk?summary=not-a-uuid']){
     const s=store();saveGoogleContext(s,'/signup',next);assert.deepEqual(readGoogleContext(s),{origin:'/signup',next:'/'});
   }
 });

@@ -12,7 +12,7 @@ const results = [];
 
 async function fixture(page) {
   const conversation = { id: randomUUID(), phase: 'chatting', messages: [], summaries: [], jobs: [] };
-  let sends = 0, summaries = 0, loggedIn = true, confirmations = 0;
+  let sends = 0, summaries = 0, loggedIn = true, confirmations = 0, imageRequests = 0;
   const job = kind => {
     const value = { id: randomUUID(), kind, status: 'running', source_until_seq_no: conversation.messages.length, error_code: null };
     conversation.jobs.push(value); return value;
@@ -26,6 +26,11 @@ async function fixture(page) {
     const failure = (code, status) => route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify({ success: false, data: null, error: { code, message: '검증용 실패', details: [] } }) });
     if (path === '/api/v1/auth/me') { await (loggedIn ? success(member) : failure('UNAUTHORIZED', 401)); return; }
     if (!loggedIn) { await failure('UNAUTHORIZED', 401); return; }
+    if (path === '/api/v1/diary-images') { imageRequests++; await failure('IMAGE_GENERATION_FAILED', 502); return; }
+    if (path.startsWith('/api/v1/summaries/')) {
+      const summary = conversation.summaries.find(s => s.id === path.split('/').at(-1) && s.confirmed_at);
+      await (summary ? success(summary) : failure('NOT_FOUND', 404)); return;
+    }
     if (path === '/api/v1/conversations') { await success(conversation, 201); return; }
     if (path === `/api/v1/conversations/${conversation.id}`) { await success(conversation); return; }
     if (path.endsWith('/messages')) {
@@ -55,7 +60,7 @@ async function fixture(page) {
       conversation.phase = 'reviewing'; conversation.summaries.push({ id: randomUUID(), conversation_id: conversation.id, version: conversation.summaries.length+1, source_until_seq_no: j.source_until_seq_no, current_feeling: '시험을 앞두고 불안하지만, 내 마음을 차분하게 들여다보고 싶어요.', main_concerns: conversation.messages.filter(m => m.role === 'user').map(m => m.content), emotion_tags: ['불안', '긴장', '막막함'], confirmed_at: null, created_at: '2026-10-08T05:02:00Z' });
     }
   }
-  return { conversation, reply, summary, calls: () => ({ sends, summaries, confirmations }), logout() { loggedIn = false; } };
+  return { conversation, reply, summary, calls: () => ({ sends, summaries, confirmations, imageRequests }), logout() { loggedIn = false; } };
 }
 async function visibleInViewport(locator, page) {
   await locator.scrollIntoViewIfNeeded(); const box = await locator.boundingBox(); const size = page.viewportSize();
@@ -104,12 +109,20 @@ try {
     await page.getByText('모리가 네 이야기를 듣고 있어요… 입력은 계속할 수 있어요.').waitFor({ state: 'hidden' });
     await finish.click(); await waitFor(() => f.calls().summaries === 2, page); f.summary();
     await confirm.waitFor(); await confirm.click();
-    try { await page.getByText('요약을 확정했어요. 다음 단계 연결을 기다리고 있어요.').waitFor(); }
+    try { await page.getByText('요약을 확정했어요. 이 내용으로 그림일기를 만들 수 있어요.').waitFor(); }
     catch (error) { console.log(JSON.stringify({ viewport, calls: f.calls(), saved: f.conversation, screen: await page.locator('body').innerText() })); throw error; }
     assert.equal(f.calls().confirmations, 1); assert.equal(f.conversation.summaries.length, 2);
     assert.equal(await page.getByText('이미지 생성과 컬렉션 저장은 아직 시작되지 않았어요.').count(), 1);
+    const diary = page.getByRole('link', { name: '그림일기 만들기로 이동' });
+    await visibleInViewport(diary, page);
+    const summaryId = f.conversation.summaries.at(-1).id;
+    assert.equal(await diary.getAttribute('href'), `/talk?summary=${summaryId}`);
+    await diary.click(); await page.waitForURL(`**/talk?summary=${summaryId}`);
+    await page.getByRole('button', { name: '이 요약으로 그림 만들기' }).waitFor();
+    assert.equal(f.calls().imageRequests, 0);
+    await page.goto(`${base}/talk/${f.conversation.id}/handoff/${summaryId}`);
     await page.getByRole('link', { name: '확정 요약 보기' }).click(); await page.waitForURL('**/handoff/**'); await page.reload();
-    await page.getByText('요약을 확정했어요. 다음 단계 연결을 기다리고 있어요.').waitFor();
+    await page.getByText('요약을 확정했어요. 이 내용으로 그림일기를 만들 수 있어요.').waitFor();
     await page.getByRole('button', { name: '같은 대화로 돌아가기' }).click(); await page.waitForURL(`**/talk/${f.conversation.id}`);
     await input.waitFor(); await input.fill('재접속 시 복원되면 안 되는 초안');
     // Return to the same persisted conversation URL, then reload.

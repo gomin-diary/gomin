@@ -4,11 +4,11 @@
 
 ## 구현 범위와 현재 실행 조건
 
-HW 범위는 대화 입력·저장·조회, 저장된 맥락의 AI 호출 경계, 마무리·요약·확정·동일 대화 재개·재요약, 확정 요약 전달과 단계별 안내다. 김지민 담당의 이미지 생성·재생성·완료 화면·컬렉션 저장은 연결 지점 이후 별도 구현이다.
+HW 범위는 REST 대화 입력·저장·조회, 저장된 맥락의 AI 응답, 마무리·요약·확정·동일 대화 재개·재요약, 확정 요약 전달과 단계별 안내다. 확정 후 main의 기존 그림일기 화면으로 연결하며 김지민 담당의 이미지·완료·컬렉션 구현을 재사용한다.
 
-이 PR의 대화·요약은 `TalkProvider` 인터페이스까지 구현했으며 기본 구현은 `AI_NOT_CONFIGURED` 실패를 기록한다. 실제 AI 대신 고정 문구를 반환하지 않는다. 최초 구현 당시 제공자 합의는 확인되지 않았으나, PR 생성 중 main에 `CodysseyClient`와 텍스트 모델 `gpt-5.4-mini` 설정이 추가됐다. 해당 클라이언트를 사용하는 대화·요약 어댑터 등록과 실제 호출은 이 PR에서 확인하지 않았다. 실제 비밀 키는 채팅·코드·문서에 넣지 않는다. 환경 안내는 `backend/.env.example`, `frontend/.env.example`만 기준으로 한다.
+대화·요약의 `CodysseyTalkProvider`는 main의 `CodysseyClient`를 기존 `get_ai_client` 의존성으로 주입받는다. 모델과 주소를 따로 하드코딩하지 않고 `backend/.env.example`의 `AI_BASE_URL`·`AI_TEXT_MODEL`·`AI_API_KEY` 설정을 재사용한다. 기본 텍스트 모델은 `gpt-5.4-mini`, 게이트웨이는 `https://copa.codyssey.kr/v1/chat/completions`다. 키가 없거나 잘못되면 `AI_NOT_CONFIGURED`로 실패하며 고정 문구로 대체하지 않는다. 실제 키를 사용한 AI 호출·품질 검증은 수행하지 않았다. 실제 비밀 키는 채팅·코드·문서에 넣지 않는다. 환경 안내는 frontend·backend의 `.env.example`만 기준으로 한다.
 
-새 SQL 파일은 작성했으나 실제 Supabase 적용은 아직 확인하지 않았다. 최초 적용 시도는 로컬 DB 연결(127.0.0.1:54322) 거부로 실패했다. 이후 Docker의 supabase_db_gomin 컨테이너가 healthy 상태이고 같은 포트에 연결되는 것을 확인했다. SQL 적용 재실행은 하지 않았다. [QA 기록](talk-mvp-qa.md)은 격리된 검증과 실제 연동·배포 여부를 구분한다.
+2026-10-09 로컬 Supabase에 대화 SQL과 main의 미적용 마이그레이션 12개를 적용했다. 적용 이력과 대화 RPC 7개 등록을 재조회하고 service_role의 저장·소유권·전송 제한·복원·재요약·확정·기존 그림일기 요약 참조를 실제 DB에서 검증했다. 검증용 회원·대화·결과는 트랜잭션에서 롤백했다. 최초 연결 거부 이후의 적용 성공이며, Supabase Data API·쿠키·실제 AI를 함께 사용하는 통합 검증과 운영 DB 적용은 남아 있다. [QA 기록](talk-mvp-qa.md)은 확인 범위를 구분한다.
 
 ## 화면과 입력
 
@@ -42,6 +42,8 @@ HW 범위는 대화 입력·저장·조회, 저장된 맥락의 AI 호출 경계
 ## 인증·API 계약
 
 호출은 `apiFetch`와 세션 쿠키를 사용한다. 서버는 모든 경로에서 `require_member`로 확인한 회원 ID를 DB에 전달한다. 요청 본문의 회원 ID는 받지 않는다. 비소유 대화·요약은 404로 응답하고 내부 DB 오류는 비밀정보 없는 공통 오류로 변환한다.
+
+채팅은 HTTP REST API를 사용한다. 메시지 POST는 사용자 원문 저장과 응답 작업 접수 후 즉시 202를 반환한다. 브라우저는 같은 대화 GET을 800ms 간격으로 조회해 저장된 모리 응답·작업 실패를 확인한다. 202는 AI 완료가 아니다. 응답·요약 생성은 한 번만 실행하며 조회 실패 시 관찰을 중단한다. WebSocket·SSE·토큰 스트리밍은 사용하지 않는다.
 
 아래는 공통 성공 응답의 `data`다. 경로 접두사는 `/api/v1/conversations`다.
 
@@ -85,11 +87,11 @@ message에는 ID·conversation_id·seq_no·role·content·created_at이 있다. 
 }
 ```
 
-- `TalkSession`의 `onConfirmed(handoff)`는 서버 확정 응답 또는 확정 요약 조회 후 전달한다. `ConfirmedSummaryBoundary`를 후속 화면으로 교체할 수도 있다.
+- `TalkSession`의 `onConfirmed(handoff)`는 서버 확정 응답 또는 확정 요약 조회 후 전달한다. `ConfirmedSummaryBoundary`의 그림일기 이동 링크는 확정된 `summary_id`로 main의 `/talk?summary={summary_id}`를 연다. 로그인 복귀도 이 UUID 쿼리 경로만 허용한다.
 - 독립적인 후속 화면은 handoff GET 경로로 동일 서버 데이터를 다시 읽는다. 서버의 `TalkRepository.confirmed_summary(member_id, conversation_id, summary_id)`도 사용할 수 있다.
 - 후속 API는 브라우저가 보낸 summary 본문이나 confirmed=true를 신뢰하지 말고 세션 회원과 위 식별자로 서버 저장·소유권·확정을 검증한다.
 - main의 후속 이미지 구현은 `/talk?summary={summary_id}`와 `POST /api/v1/diary-images`의 `summary_id`로 저장 요약을 참조한다. 이미지 결과는 작업 큐 없이 `diary_results.summary_id`에 직접 연결한다. 기존 [그림일기 MVP](diary-mvp.md)와 [공통 ERD](conversation-collection-erd.md)를 따른다.
-- HW 확정 API는 이미지 job·diary_results·collection_entries를 만들지 않는다. 전달 화면은 다음 단계 보류를 표시한다. 실제 이미지 작업을 시작한 뒤에는 후속 담당이 자체 상태를 조회·표시해야 한다.
+- HW 확정 API와 화면 이동은 이미지 job·diary_results·collection_entries를 만들지 않는다. 전달 화면은 요약 확정과 이미지·저장 미시작을 구분한다. 이미지 생성은 기존 후속 화면의 별도 버튼에서 시작한다.
 
 ## 저장과 실행 방식
 
@@ -101,8 +103,10 @@ message에는 ID·conversation_id·seq_no·role·content·created_at이 있다. 
 
 AI 실행은 FastAPI BackgroundTasks에서 한 번 수행하고 60초로 제한한다. DB 실행 lease는 90초이며 늦은 완료는 저장하지 않는다. 서버 종료나 DB 장애로 완료 상태를 기록하지 못하면 만료된 작업을 조회 시 실패로 표시한다. 자동 재실행·재시도 worker·복구 화면은 없다. 진행 상태의 GET 조회만 800ms 간격으로 수행하며 네트워크 실패 시 중단한다.
 
+응답 프롬프트는 해당 원문 범위의 사용자·모리 역할과 내용을 순서대로 전달한다. 요약은 같은 원문을 JSON 자료로 전달하고 세 영역의 JSON 출력·빈 값·길이·추가 필드를 검증한다. 회원 ID·대화 ID·시각·초안은 제공자에 전달하지 않는다. 미설정은 AI_NOT_CONFIGURED, 제공자/전체 실행 시간 초과는 AI_TIMEOUT, 통신·잘못된 출력은 AI_FAILED로 기록한다. 제공자의 원문 오류는 화면·로그·DB에 그대로 노출하지 않는다.
+
 ## 적용과 검증
 
-DB 적용은 [마이그레이션 관리](database-migrations.md)의 `npm run db:migrate`와 운영 절차를 따른다. 기존 DB를 검증 목적으로 reset하지 않는다. 제공자 등록·실제 DB 적용 후 쿠키 인증부터 응답·요약·확정까지 실제 통합 검증이 남아 있다.
+DB 적용은 [마이그레이션 관리](database-migrations.md)의 `npm run db:migrate`와 운영 절차를 따른다. 기존 DB를 검증 목적으로 reset하지 않는다. 제공자 어댑터와 로컬 SQL 적용은 확인했으며, 쿠키 인증부터 실제 AI 응답·요약·확정까지의 통합 검증과 운영 적용은 남아 있다.
 
 [공유 설계 검토안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3670056) · [검수 22개와 실행 결과](talk-mvp-qa.md) · [문서 목록](../README.md)

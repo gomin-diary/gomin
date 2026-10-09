@@ -49,6 +49,7 @@
 .primary { background: #355c51; color: #fffefa; }
 .secondary { background: #fff; color: #355c51; }
 .handoff { margin: 24px auto 0; width: min(100%, 920px); padding: 20px; border: 1px solid #d8ded4; border-radius: 20px; background: #fffefa; text-align: center; }
+.handoff a { display: block; width: fit-content; max-width: 100%; margin: 12px auto 0; line-height: 1.5; }
 @media (max-width: 767px) {
   .surface { padding: 4px 12px max(10px, env(safe-area-inset-bottom, 0px)); font-size: 18px; }
   .topbar { min-height: 44px; }

@@ -28,7 +28,7 @@ async def generate(repository: TalkRepository, provider: TalkProvider, member_id
         error_code = "AI_TIMEOUT"
     except AppError as error:
         # Internal dependency errors are never serialized verbatim.
-        error_code = "AI_NOT_CONFIGURED" if error.code == "AI_NOT_CONFIGURED" else "AI_FAILED"
+        error_code = error.code if error.code in ("AI_NOT_CONFIGURED", "AI_TIMEOUT") else "AI_FAILED"
     except Exception:
         error_code = "AI_FAILED"
     try:

@@ -5,16 +5,17 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, MockTransport, Response
 
 from app.api.routes.talk import router
+from app.ai.client import CodysseyClient
 from app.auth.security import token_digest
 from app.auth.session import COOKIE_NAME, get_auth_repository, get_auth_settings
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.exception_handlers import ERROR_RESPONSES, register_exception_handlers
 from app.schemas.talk import MessageInput, SummaryContent
-from app.talk.provider import UnconfiguredTalkProvider, get_talk_provider
+from app.talk.provider import CodysseyTalkProvider, get_talk_provider
 from app.talk.repository import get_talk_repository
 from app.talk.service import generate
 
@@ -118,6 +119,7 @@ class TalkApiTests(unittest.IsolatedAsyncioTestCase):
         app.dependency_overrides[get_auth_settings] = lambda: settings
         app.dependency_overrides[get_talk_repository] = lambda: self.repository
         app.dependency_overrides[get_talk_provider] = lambda: self.provider
+        self.app = app
         self.client = AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies={COOKIE_NAME: self.token})
 
     async def asyncTearDown(self):
@@ -204,6 +206,37 @@ class TalkApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["data"], None)
 
+    async def test_rest_routes_use_main_client_for_context_and_versioned_summary(self):
+        import json
+        requests = []
+
+        def upstream(request):
+            payload = json.loads(request.content)
+            requests.append(payload)
+            summary = payload["messages"][0]["content"].startswith("당신은 고민일기에 저장된")
+            content = json.dumps({"current_feeling": "시험과 가족 이야기를 정리해요", "main_concerns": ["시험", "가족"], "emotion_tags": ["불안"]}) if summary else "네가 말한 고민을 기억하고 있어."
+            return Response(200, json={"choices": [{"finish_reason": "stop", "message": {"role": "assistant", "content": content}}]})
+
+        settings = Settings(_env_file=None, supabase_url="https://example.supabase.co", supabase_secret_key="test-placeholder", ai_api_key="test-placeholder")
+        async with AsyncClient(transport=MockTransport(upstream)) as http:
+            self.app.state.ai_client = CodysseyClient(http, settings)
+            del self.app.dependency_overrides[get_talk_provider]
+            conversation_id = await self.create()
+            response = await self.send(conversation_id, "시험이 불안해요")
+            self.assertEqual(response.status_code, 202)
+            self.assertEqual(response.json()["data"]["message"]["seq_no"], 1)
+            first = await self.summary(conversation_id)
+            await self.client.post(f"/api/v1/conversations/{conversation_id}/resume")
+            await self.send(conversation_id, "가족 이야기도 있어요")
+            second = await self.summary(conversation_id)
+            self.assertEqual([first["version"], second["version"]], [1, 2])
+            self.assertEqual([m["content"] for m in requests[2]["messages"][1:]], ["시험이 불안해요", "네가 말한 고민을 기억하고 있어.", "가족 이야기도 있어요"])
+            self.assertEqual(len(json.loads(requests[3]["messages"][1]["content"])), 4)
+            self.assertTrue(all(r["model"] == "gpt-5.4-mini" for r in requests))
+            confirmed = await self.client.post(f"/api/v1/conversations/{conversation_id}/summaries/{second['id']}/confirm")
+            self.assertEqual(confirmed.json()["data"]["summary_id"], second["id"])
+            self.assertEqual(confirmed.json()["data"]["next_stage_status"], "not_started")
+
 
 class GenerationTests(unittest.IsolatedAsyncioTestCase):
     async def test_source_filter_excludes_later_messages_and_invalid_ai_output(self):
@@ -216,7 +249,9 @@ class GenerationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(repository.complete.call_args.args[-1], "AI_FAILED")
 
     async def test_unconfigured_provider_fails_explicitly_without_production_mock(self):
-        repository = AsyncMock(); repository.snapshot.return_value = {"messages": []}
+        repository = AsyncMock(); repository.snapshot.return_value = {"messages": [dict(role="user", content="저장 고민", seq_no=1)]}
         job = dict(id=str(uuid4()), kind="reply", source_until_seq_no=1, lease_token=str(uuid4()))
-        await generate(repository, UnconfiguredTalkProvider(), uuid4(), uuid4(), job)
+        settings = Settings(_env_file=None, supabase_url="https://example.supabase.co", supabase_secret_key="test-placeholder")
+        async with AsyncClient(transport=MockTransport(lambda _: self.fail("Unconfigured provider must not call HTTP"))) as http:
+            await generate(repository, CodysseyTalkProvider(CodysseyClient(http, settings)), uuid4(), uuid4(), job)
         self.assertEqual(repository.complete.call_args.args[-1], "AI_NOT_CONFIGURED")

@@ -22,12 +22,13 @@ function SummarySections({ summary }: { summary: TalkSummary }) {
   </div>;
 }
 
-// This boundary consumes the server-confirmed contract. The next owner can replace
-// this component or attach onConfirmed; no image/collection success is inferred.
+// Forward the confirmed identifier to the existing image owner, without starting
+// image generation or claiming collection success at confirmation time.
 export function ConfirmedSummaryBoundary({ handoff }: { handoff: SummaryHandoff }) {
   return <section className={styles.handoff} aria-label="확정 요약 전달">
-    <p role="status">요약을 확정했어요. 다음 단계 연결을 기다리고 있어요.</p>
+    <p role="status">요약을 확정했어요. 이 내용으로 그림일기를 만들 수 있어요.</p>
     <p>이미지 생성과 컬렉션 저장은 아직 시작되지 않았어요.</p>
+    <Link className={styles.primary} href={`/talk?summary=${encodeURIComponent(handoff.summary_id)}`}>그림일기 만들기로 이동</Link>
     <Link href={`/talk/${handoff.conversation_id}/handoff/${handoff.summary_id}`}>확정 요약 보기</Link>
   </section>;
 }
