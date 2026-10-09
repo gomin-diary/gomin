@@ -40,6 +40,7 @@ PostgreSQL 주소는 DB 관리 도구용입니다. 앱은 Supabase Data API로 �
 - Google 로그인에는 `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `AUTH_OAUTH_ENCRYPTION_KEY`를 백엔드에 설정한다. 기본 `AUTH_FRONTEND_ORIGIN`은 `http://127.0.0.1:3000`, `GOOGLE_OAUTH_REDIRECT_URI`는 `http://127.0.0.1:8000/api/v1/auth/google/callback`이며 Google Cloud 클라이언트에 같은 콜백을 등록한다. localhost를 사용하면 프론트 접속·API 주소·Origin·CORS·콜백을 모두 localhost로 바꾼다. [Google OAuth 관리 문서](../engineering/google-oauth-flow.md)의 설정 표를 따른다.
 - 로컬 키 확인은 개발자가 자신의 터미널에서 수행하고 출력은 공유하지 않는다. AI 에이전트는 키 조회 명령을 실행하거나 실제 환경 파일을 읽지 않는다.
 - 파일 저장 모듈은 기존 Supabase 서버 설정과 `STORAGE_BUCKET`, `STORAGE_MAX_FILE_SIZE_BYTES`를 사용한다. `STORAGE_BUCKET`에는 Supabase에 미리 준비된 버킷 ID를 지정하며 기본값은 `gomin-files`다. 모듈은 실제 파일 바이트 수를 검사하며 기본 제한은 10MiB다. Supabase의 기존 버킷 제한도 적용된다. [파일 저장 모듈 안내](../engineering/file-storage.md)를 따른다.
+- 요약 기반 그림일기는 제목·위로·이미지 프롬프트 구성에 Copa의 `AI_API_KEY`, 이미지 생성에 Google AI Studio의 `GEMINI_API_KEY`를 사용한다. 기존 Copa 텍스트 설정은 유지하고 `backend/.env.example`의 `GEMINI_*` 설정을 추가한 뒤 백엔드를 재시작한다. 모델·화면·API 흐름은 [그림일기 MVP](../engineering/diary-mvp.md)를 따른다.
 
 실행 순서는 [서버 개별 실행](manual-run.md), 스키마 변경 절차는 [코딩과 검증 규칙](../engineering/coding-conventions.md)을 참고한다.
 

@@ -3,8 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from app.ai.client import AIConfigurationError, AIRequestError, CodysseyClient
-from app.ai.dependencies import get_ai_client
+from app.ai.client import AIConfigurationError, AIRequestError, CodysseyClient, GeminiClient
+from app.ai.dependencies import get_ai_client, get_image_ai_client
 from app.auth.session import require_member
 from app.core.errors import AppError
 from app.diary.composition import compose_diary
@@ -40,12 +40,14 @@ async def summary(summary_id: UUID, member: Member, repository: Repository):
 async def generate(
     body: GenerateDiaryInput, member: Member, repository: Repository, storage: Storage,
     ai: Annotated[CodysseyClient, Depends(get_ai_client)],
+    image_ai: Annotated[GeminiClient, Depends(get_image_ai_client)],
     image_storage: Annotated[DiaryImageStorage, Depends(get_diary_image_storage)],
 ):
     summary_row = await repository.prepare_summary(str(member.id), str(body.summary_id))
     try:
+        image_ai.validate_configuration()
         composition = await compose_diary(ai, summary_row)
-        data = await ai.generate_image(composition.image_prompt, size=ai.settings.ai_image_size)
+        data = await image_ai.generate_image(composition.image_prompt)
         image = await image_storage.upload(data)
     except AIConfigurationError:
         raise AppError(503, "AI_NOT_CONFIGURED", "이미지 생성 설정을 확인해 주세요.") from None

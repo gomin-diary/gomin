@@ -42,18 +42,34 @@
 
 | 설정 | 기본값/용도 |
 | --- | --- |
-| `AI_API_KEY` | 서버 환경변수의 가상 키, 기본 빈 값 |
+| `AI_API_KEY` | Copa 텍스트 구성용 서버 전용 가상 키, 기본 빈 값 |
 | `AI_BASE_URL` | `https://copa.codyssey.kr` |
 | `AI_TEXT_MODEL` | `gpt-5.4-mini` |
-| `AI_IMAGE_MODEL` | `gpt-image-2` |
-| `AI_IMAGE_SIZE` | `1024x1024` |
-| `AI_TIMEOUT_SECONDS` | 개별 제공자 요청 120초 |
+| `AI_TIMEOUT_SECONDS` | Copa 요청 120초 |
+| `GEMINI_API_KEY` | Google AI Studio에서 발급한 서버 전용 API 키, 기본 빈 값 |
+| `GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com` |
+| `GEMINI_IMAGE_MODEL` | `gemini-2.5-flash-image` |
+| `GEMINI_IMAGE_ASPECT_RATIO` | `1:1`, 기본 모델의 정사각형 출력은 1024×1024 |
+| `GEMINI_TIMEOUT_SECONDS` | 개별 제공자 요청 120초 |
 | `DIARY_IMAGE_BUCKET` | 비공개 `gomin-diary-images` |
 
-텍스트는 `/v1/chat/completions`, 이미지는 `/api/v1/images`에 POST한다.
-인증은 Bearer 가상 키, 본문은 JSON이다. 이미지 요청은 model/prompt/size와 `response_format=b64_json`을 사용한다.
-첨부 예제의 `result.images[0].b64_json`을 디코딩해 실제 이미지 형식을 확인하고 Storage에 저장한다.
-제공자의 웹 세션 전용 URL을 사용하지 않는다. DB에는 이미지 bucket/object key만 저장하고 조회 시 서명 URL을 발급한다.
+제목·위로·이미지 프롬프트 구성은 기존 Copa의 `/v1/chat/completions`에 POST한다.
+`AI_API_KEY`를 Bearer 인증으로 전달하고 `AI_TEXT_MODEL`과 system/user 메시지를 사용한다.
+요약의 지금의 마음·주요 고민·감정 태그만 텍스트 구성 요청에 포함한다.
+이미지 생성만 Gemini API의 `/v1beta/models/{모델 ID}:generateContent`에 POST한다.
+`GEMINI_API_KEY`를 `x-goog-api-key` 헤더로 전달하며 Copa에서 만든 이미지 프롬프트를 보낸다.
+이미지 요청은 `contents`와 `generationConfig.responseModalities=["TEXT","IMAGE"]`,
+`generationConfig.imageConfig.aspectRatio`를 사용한다. 픽셀 크기를 직접 지정하지 않는다.
+응답의 첫 후보가 `finishReason=STOP`인 경우만 사용하며 안전 차단·중단·이미지 없는 응답은 실패 처리한다.
+`content.parts`에서 thought가 아닌 `inlineData.data`의 Base64를 디코딩해 실제 이미지 형식과 용량을 확인하고 Storage에 저장한다.
+DB에는 이미지 bucket/object key만 저장하고 조회 시 서명 URL을 발급한다.
+
+기존 Copa용 `AI_API_KEY`, `AI_BASE_URL`, `AI_TEXT_MODEL`, `AI_TIMEOUT_SECONDS`는 유지한다.
+이미지용 `GEMINI_*` 설정을 추가한 뒤 백엔드를 재시작한다.
+기존 `AI_IMAGE_MODEL`, `AI_IMAGE_SIZE`, `AI_IMAGE_RESPONSE_FORMAT`은 사용하지 않는다.
+Gemini 키·이미지 모델이 누락되면 유료 Copa 요청 전에 설정 오류를 반환한다.
+키는 [Google AI Studio](https://aistudio.google.com/apikey)에서 발급하며,
+요청·응답 규격은 [Gemini 이미지 생성 공식 문서](https://ai.google.dev/gemini-api/docs/generate-content/image-generation)를 따른다.
 
 ## DB 변경
 
