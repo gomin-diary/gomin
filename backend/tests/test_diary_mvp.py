@@ -1,15 +1,17 @@
 import base64
 import json
+from pathlib import Path
 from types import SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 from fastapi import FastAPI
 import httpx
 
-from app.ai.client import CodysseyClient
-from app.ai.dependencies import get_ai_client
+from app.ai.client import CodysseyClient, GeminiClient
+from app.ai.client import MORI_REFERENCE_PATH
+from app.ai.dependencies import get_ai_client, get_image_ai_client
 from app.api.routes.diary import router
 from app.auth.session import require_member
 from app.core.errors import AppError
@@ -44,23 +46,31 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.repository.entry = AsyncMock(return_value={**self.row, **self.entry,
             "current_feeling": "불안해요", "main_concerns": ["시험"], "emotion_tags": ["불안"]})
         self.requests = []
+        self.fail_text = False
         self.fail_image = False
         def provider(request):
             self.requests.append(request)
             if request.url.path == "/v1/chat/completions":
+                if self.fail_text:
+                    return httpx.Response(500, text="provider-secret-must-not-leak")
                 content = json.dumps({"title": "오늘의 기록", "encouragement_text": "잘 해내고 있어요", "image_prompt": "숲의 동물"})
-                return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"role": "assistant", "content": content}}]})
+                return httpx.Response(200, json={"choices": [{"finish_reason": "stop",
+                    "message": {"role": "assistant", "content": content}}]})
             if self.fail_image:
                 return httpx.Response(500, text="provider-secret-must-not-leak")
-            return httpx.Response(200, json={"result": {"images": [{"b64_json": base64.b64encode(encoded_image()).decode()}]}})
+            return httpx.Response(200, json={"candidates": [{"finishReason": "STOP",
+                "content": {"role": "model", "parts": [{"inlineData": {
+                    "mimeType": "image/png", "data": base64.b64encode(encoded_image()).decode()}}]}}]})
         self.provider = httpx.AsyncClient(transport=httpx.MockTransport(provider))
         self.addAsyncCleanup(self.provider.aclose)
-        ai = CodysseyClient(self.provider, settings(ai_api_key="test-only"))
+        config = settings(ai_api_key="copa-test-only", gemini_api_key="gemini-test-only")
+        ai = CodysseyClient(self.provider, config)
+        image_ai = GeminiClient(self.provider, config)
         self.app = FastAPI()
         register_exception_handlers(self.app)
         self.app.include_router(router)
         for dependency, value in [(require_member, self.member), (get_diary_repository, self.repository),
-                (get_ai_client, ai), (get_file_storage, self.storage),
+                (get_ai_client, ai), (get_image_ai_client, image_ai), (get_file_storage, self.storage),
                 (get_diary_image_storage, DiaryImageStorage(self.storage, ai.settings))]:
             def override(value):
                 return lambda: value
@@ -76,8 +86,20 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("image_bucket", response.text)
         self.assertNotIn("job", response.text)
         self.repository.prepare_summary.assert_awaited_once_with(str(self.member.id), self.summary_id)
-        self.assertEqual([r.url.path for r in self.requests], ["/v1/chat/completions", "/api/v1/images"])
-        self.assertEqual(json.loads(self.requests[1].content)["model"], "gpt-image-2")
+        self.assertEqual([r.url.path for r in self.requests], [
+            "/v1/chat/completions",
+            "/v1beta/models/gemini-2.5-flash-image:generateContent"])
+        self.assertEqual(self.requests[0].url.host, "copa.codyssey.kr")
+        self.assertEqual(self.requests[1].url.host, "generativelanguage.googleapis.com")
+        self.assertEqual(self.requests[0].headers["Authorization"], "Bearer copa-test-only")
+        self.assertNotIn("x-goog-api-key", self.requests[0].headers)
+        self.assertEqual(self.requests[1].headers["x-goog-api-key"], "gemini-test-only")
+        self.assertNotIn("Authorization", self.requests[1].headers)
+        parts = json.loads(self.requests[1].content)["contents"][0]["parts"]
+        self.assertEqual(parts[-1]["text"], "숲의 동물")
+        self.assertIn("Mori", parts[0]["text"])
+        self.assertEqual(parts[1]["inlineData"]["mimeType"], "image/png")
+        self.assertEqual(base64.b64decode(parts[1]["inlineData"]["data"], validate=True), MORI_REFERENCE_PATH.read_bytes())
         self.assertEqual(self.storage.upload.call_args.args[0], encoded_image())
         self.repository.create_result.assert_awaited_once()
 
@@ -95,6 +117,40 @@ class DiaryMvpTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("provider-secret", response.text)
         self.storage.upload.assert_not_awaited()
         self.repository.create_result.assert_not_awaited()
+
+    async def test_missing_gemini_key_returns_configuration_error_without_sending(self):
+        self.app.dependency_overrides[get_image_ai_client] = lambda: GeminiClient(self.provider, settings())
+        response = await self.client.post("/api/v1/diary-images", json={"summary_id": self.summary_id})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["error"]["code"], "AI_NOT_CONFIGURED")
+        self.assertEqual(self.requests, [])
+        self.storage.upload.assert_not_awaited()
+        self.repository.create_result.assert_not_awaited()
+
+    async def test_missing_copa_key_returns_configuration_error_without_sending(self):
+        self.app.dependency_overrides[get_ai_client] = lambda: CodysseyClient(self.provider, settings())
+        response = await self.client.post("/api/v1/diary-images", json={"summary_id": self.summary_id})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["error"]["code"], "AI_NOT_CONFIGURED")
+        self.assertEqual(self.requests, [])
+        self.storage.upload.assert_not_awaited()
+        self.repository.create_result.assert_not_awaited()
+
+    async def test_copa_failure_never_sends_an_image_request(self):
+        self.fail_text = True
+        response = await self.client.post("/api/v1/diary-images", json={"summary_id": self.summary_id})
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual([request.url.host for request in self.requests], ["copa.codyssey.kr"])
+        self.storage.upload.assert_not_awaited()
+        self.repository.create_result.assert_not_awaited()
+
+    async def test_missing_mori_reference_returns_configuration_error_before_copa(self):
+        with patch("app.ai.client.MORI_REFERENCE_PATH", Path("/missing-mori-reference.png")):
+            response = await self.client.post("/api/v1/diary-images", json={"summary_id": self.summary_id})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["error"]["code"], "AI_NOT_CONFIGURED")
+        self.assertEqual(self.requests, [])
+        self.storage.upload.assert_not_awaited()
 
     async def test_save_returns_entry_and_never_regenerates_image(self):
         for _ in range(2):

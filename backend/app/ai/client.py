@@ -3,10 +3,42 @@ import base64
 import binascii
 import json
 import re
+from pathlib import Path
 
 import httpx
 
 from app.core.config import Settings
+
+
+MORI_REFERENCE_PATH = Path(__file__).resolve().parents[1] / "assets" / "mori.png"
+MORI_REFERENCE_MAX_BYTES = 2 * 1024 * 1024
+MORI_IMAGE_INSTRUCTIONS = (
+    "Create a tender, comforting and quietly poetic scene combining an illustrated Mori with a photorealistic natural landscape. "
+    "Use the attached reference as a character identity guide, not as a template for the pose, lighting or background. "
+    "Preserve Mori's identity, fluffy ivory fur, long floppy ears, black eyes, pink cheeks, "
+    "two-leaf sprout on the head, green backpack and proportions. "
+    "Use this exact character instead of replacing it with another animal described in the scene. "
+    "Use a natural landscape as the default setting: a forest, meadow, lake, coast, mountains or a starry sky suited to the feeling, not an office or desk scene. "
+    "Render the background as a real landscape photograph with realistic foliage, bark, grass, rocks, water reflections, perspective and natural light. "
+    "Do not turn the landscape into a cartoon, watercolor painting or flat vector background. "
+    "Show Mori from behind quietly looking at the landscape, or from the front with a subtle, emotionally readable expression. "
+    "For a rear view, convey emotion through the ears, shoulders, head angle and posture; for a front view, use the eyes, expression and small gesture. "
+    "A full-body shot is optional; a face, upper-body or over-the-shoulder composition can tell the story just as well. "
+    "Make Mori's rounded, plush silhouette, fine soft fur, rosy cheeks and subtle expression emotionally engaging. "
+    "Let a small gesture, lowered gaze, relaxed ears or a quiet pause express the feeling; do not replace sadness or anxiety with a forced smile. "
+    "For Mori only, use softly blended digital painting with delicate watercolor texture, soft edges and gentle rounded volume; do not photorealistically redesign Mori as a real animal. "
+    "Match Mori's lighting direction, color temperature, perspective and contact shadows to the photographed setting, with gentle rim light, not as a sticker on a backdrop. "
+    "Keep realistic natural colors in the landscape, nuanced shadows and softly warm light; preserve the mood of a rainy or night scene. "
+    "Use natural photographic depth while keeping the landscape recognizable; do not hide it behind excessive blur or clutter. "
+    "Let the mood determine the setting, time of day, weather and palette; intimacy, tenderness and quiet wonder matter more than visual complexity. "
+    "Choose an intimate composition where Mori's expression and gesture are readable; do not force a distant wide shot or a full-body pose. "
+    "Leave breathing room around the sprout and ears, while keeping Mori emotionally central rather than enforcing a fixed size or position. "
+    "Do not reserve blank space for a message. "
+    "Avoid hard outlines or 3D rendering for Mori, oversaturated colors and harsh contrast. "
+    "Do not copy the reference's plain background; extend the photographic landscape to every edge without white margins. "
+    "Do not include readable text, lettering, titles, dates, borders, film strips, UI or watermarks, or real human faces. "
+    "Apply the following scene description subject to these character, style and framing requirements."
+)
 
 
 class AIConfigurationError(Exception):
@@ -21,40 +53,18 @@ class AIRequestError(Exception):
         self.status_code = status_code
 
 
-class CodysseyClient:
+class _ProviderClient:
     """Use the app's HTTP client without retrying or exposing provider errors."""
 
-    def __init__(self, http_client: httpx.AsyncClient, settings: Settings) -> None:
+    def __init__(self, http_client: httpx.AsyncClient, settings: Settings, *, timeout_seconds: float) -> None:
         self.http_client = http_client
         self.settings = settings
-
-    def _headers(self) -> dict[str, str]:
-        key = self.settings.ai_api_key.get_secret_value()
-        if not re.fullmatch(r"[\x21-\x7e]+", key):
-            raise AIConfigurationError("AI_API_KEY must be a non-empty ASCII token")
-        return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-
-    def build_text_request(self, messages: list[dict[str, str]]) -> httpx.Request:
-        return self.http_client.build_request(
-            "POST", self.settings.ai_text_url, headers=self._headers(),
-            json={"model": self.settings.ai_text_model, "messages": messages},
-            timeout=self.settings.ai_timeout_seconds,
-        )
-
-    def build_image_request(self, prompt: str, *, size: str) -> httpx.Request:
-        if not self.settings.ai_image_model:
-            raise AIConfigurationError("AI_IMAGE_MODEL must be configured")
-        return self.http_client.build_request(
-            "POST", self.settings.ai_image_url, headers=self._headers(),
-            json={"model": self.settings.ai_image_model, "prompt": prompt, "size": size,
-                  "response_format": self.settings.ai_image_response_format},
-            timeout=self.settings.ai_timeout_seconds,
-        )
+        self.timeout_seconds = timeout_seconds
 
     async def _json_response(self, request: httpx.Request, *, max_bytes: int) -> dict:
         response = None
         try:
-            async with asyncio.timeout(self.settings.ai_timeout_seconds):
+            async with asyncio.timeout(self.timeout_seconds):
                 response = await self.http_client.send(request, stream=True, follow_redirects=False)
                 if not 200 <= response.status_code < 300:
                     code = "RATE_LIMITED" if response.status_code == 429 else "PROVIDER_ERROR"
@@ -85,33 +95,113 @@ class CodysseyClient:
                 except httpx.HTTPError:
                     raise AIRequestError("PROVIDER_ERROR", uncertain=True) from None
 
+
+class CodysseyClient(_ProviderClient):
+    def __init__(self, http_client: httpx.AsyncClient, settings: Settings) -> None:
+        super().__init__(http_client, settings, timeout_seconds=settings.ai_timeout_seconds)
+
+    def _headers(self) -> dict[str, str]:
+        key = self.settings.ai_api_key.get_secret_value()
+        if not re.fullmatch(r"[\x21-\x7e]+", key):
+            raise AIConfigurationError("AI_API_KEY must be a non-empty ASCII token")
+        return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    def build_text_request(self, messages: list[dict[str, str]]) -> httpx.Request:
+        return self.http_client.build_request(
+            "POST", self.settings.ai_text_url, headers=self._headers(),
+            json={"model": self.settings.ai_text_model, "messages": messages},
+            timeout=self.timeout_seconds,
+        )
+
     async def generate_text(self, messages: list[dict[str, str]]) -> str:
         payload = await self._json_response(self.build_text_request(messages), max_bytes=65536)
         try:
             choice = payload["choices"][0]
             message = choice["message"]
             content = message["content"]
-            if choice["finish_reason"] != "stop" or message["role"] != "assistant" or not isinstance(content, str) or not content.strip():
+            if (choice["finish_reason"] != "stop" or message["role"] != "assistant"
+                    or not isinstance(content, str) or not content.strip()):
                 raise ValueError()
             return content
         except (KeyError, IndexError, TypeError, ValueError):
             raise AIRequestError("INVALID_RESPONSE", uncertain=True) from None
 
-    async def generate_image(self, prompt: str, *, size: str) -> bytes:
+
+class GeminiClient(_ProviderClient):
+    def __init__(self, http_client: httpx.AsyncClient, settings: Settings) -> None:
+        super().__init__(http_client, settings, timeout_seconds=settings.gemini_timeout_seconds)
+        self._mori_reference_data: str | None = None
+
+    def _reference_image_data(self) -> str:
+        if self._mori_reference_data is None:
+            try:
+                with MORI_REFERENCE_PATH.open("rb") as reference:
+                    data = reference.read(MORI_REFERENCE_MAX_BYTES + 1)
+            except OSError:
+                raise AIConfigurationError("Mori reference image must be a readable PNG") from None
+            if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > MORI_REFERENCE_MAX_BYTES:
+                raise AIConfigurationError("Mori reference image must be a PNG within 2 MiB")
+            self._mori_reference_data = base64.b64encode(data).decode("ascii")
+        return self._mori_reference_data
+
+    def _headers(self) -> dict[str, str]:
+        key = self.settings.gemini_api_key.get_secret_value()
+        if not re.fullmatch(r"[\x21-\x7e]+", key):
+            raise AIConfigurationError("GEMINI_API_KEY must be a non-empty ASCII token")
+        return {"x-goog-api-key": key, "Content-Type": "application/json"}
+
+    def validate_configuration(self) -> None:
+        if not self.settings.gemini_image_model:
+            raise AIConfigurationError("GEMINI_IMAGE_MODEL must be configured")
+        self._headers()
+        self._reference_image_data()
+
+    def build_image_request(self, prompt: str) -> httpx.Request:
+        self.validate_configuration()
+        return self.http_client.build_request(
+            "POST", self.settings.gemini_image_url, headers=self._headers(),
+            json={"contents": [{"role": "user", "parts": [
+                      {"text": MORI_IMAGE_INSTRUCTIONS},
+                      {"inlineData": {"mimeType": "image/png", "data": self._reference_image_data()}},
+                      {"text": prompt},
+                  ]}],
+                  "generationConfig": {"responseModalities": ["TEXT", "IMAGE"],
+                                       "imageConfig": {"aspectRatio": self.settings.gemini_image_aspect_ratio}}},
+            timeout=self.timeout_seconds,
+        )
+
+    def _response_parts(self, payload: dict) -> list[dict]:
+        try:
+            candidate = payload["candidates"][0]
+            content = candidate["content"]
+            parts = content["parts"]
+            if (payload.get("promptFeedback", {}).get("blockReason")
+                    or candidate["finishReason"] != "STOP" or content["role"] != "model"
+                    or not isinstance(parts, list) or not parts
+                    or any(not isinstance(part, dict) for part in parts)):
+                raise ValueError()
+            return [part for part in parts if not part.get("thought")]
+        except (KeyError, IndexError, TypeError, ValueError, AttributeError):
+            raise AIRequestError("INVALID_RESPONSE", uncertain=True) from None
+
+    async def generate_image(self, prompt: str) -> bytes:
         """Receive Base64 bytes; the caller validates the image before uploading."""
-        if not isinstance(prompt, str) or not prompt.strip() or not isinstance(size, str) or not size.strip():
-            raise ValueError("Image prompt and size must not be blank")
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("Image prompt must not be blank")
         max_bytes = self.settings.storage_max_file_size_bytes
         encoded_limit = 4 * ((max_bytes + 2) // 3)
-        payload = await self._json_response(self.build_image_request(prompt, size=size),
+        payload = await self._json_response(self.build_image_request(prompt),
                                             max_bytes=encoded_limit + 65536)
         try:
-            encoded = payload["result"]["images"][0]["b64_json"]
+            image = next(part["inlineData"] for part in self._response_parts(payload) if "inlineData" in part)
+            if image["mimeType"] not in ("image/png", "image/jpeg", "image/webp"):
+                raise ValueError("Invalid image MIME type")
+            encoded = image["data"]
             if not isinstance(encoded, str) or not encoded or len(encoded) > encoded_limit:
                 raise ValueError("Invalid encoded image")
             data = base64.b64decode(encoded, validate=True)
             if not data or len(data) > max_bytes:
                 raise ValueError("Invalid image size")
-        except (KeyError, IndexError, TypeError, ValueError, binascii.Error):
+        except (KeyError, IndexError, TypeError, ValueError, StopIteration, binascii.Error):
             raise AIRequestError("INVALID_RESPONSE", uncertain=True) from None
         return data

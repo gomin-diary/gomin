@@ -39,7 +39,7 @@
 .titleRow h2 { margin: 0; color: #294f47; font-size: clamp(26px, 2.109375vw, 54px); line-height: 1.45; }
 .titleRow .iconSlot { width: 18px; height: 18px; }
 .titleRow .iconSlot img { transform: scale(.4186); }
-.detailHeading p { margin: 8px 0 0; font: clamp(12px, 1.015625vw, 26px)/1.45 sans-serif; }
+.detailHeading p { margin: 8px 0 0; font: clamp(12px, 1.015625vw, 26px)/1.45 sans-serif; white-space: pre-line; }
 .summaryCards { display: grid; gap: clamp(10px, .9375vw, 24px); }
 .summaryCard { display: flex; align-items: flex-start; gap: clamp(8px, .78125vw, 20px); min-height: clamp(100px, 7.8125vw, 200px); padding: clamp(12px, .9375vw, 24px); border: 1px solid #f5e2e0; border-radius: 12px; }
 .summaryCard > div { min-width: 0; flex: 1; }
@@ -84,7 +84,6 @@
   .mobileHero { position: relative; min-height: 76vw; background: #294f47; }
   .heroPhoto { aspect-ratio: 320 / 244; }
   .heroPhoto img { top: calc(var(--image-top) * 300 / 244 - 18%); }
-  .heroTitle { position: absolute; right: 6%; top: 38%; width: 29%; margin: 0; transform: rotate(-12deg); color: #fffcf5; font-size: clamp(24px, 6.5vw, 42px); line-height: 1.6; text-align: center; word-break: keep-all; text-shadow: 0 1px 8px rgb(11 14 13 / 40%); }
   :global(.page-shell--collection:has(article[aria-label="고민일기 상세"]) .site-header),
   :global(.page-shell--collection:has(article[aria-label="고민일기 상세"]) .skip-link) { display: none; }
   .backButton { position: absolute; left: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgb(11 14 13 / 20%); color: white; font: 32px/1 sans-serif; cursor: pointer; }

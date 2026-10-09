@@ -10,7 +10,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.sessions import router as sessions_router
 from app.api.routes.signup import router as signup_router
 from app.api.routes.google_oauth import router as google_oauth_router
-from app.ai.client import CodysseyClient
+from app.ai.client import CodysseyClient, GeminiClient
 from app.api.routes.diary import router as diary_router
 from app.auth.google_provider import GoogleProvider
 from app.core.config import get_settings
@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.supabase = await create_supabase_client(settings, http_client)
         app.state.google_provider = GoogleProvider(http_client, settings)
         app.state.ai_client = CodysseyClient(http_client, settings)
+        app.state.image_ai_client = GeminiClient(http_client, settings)
         yield
 
 

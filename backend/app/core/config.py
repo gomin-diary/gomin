@@ -24,10 +24,12 @@ class Settings(BaseSettings):
     ai_base_url: HttpUrl = HttpUrl("https://copa.codyssey.kr")
     ai_api_key: SecretStr = SecretStr("")
     ai_text_model: str = Field(default="gpt-5.4-mini", min_length=1)
-    ai_image_model: str = "gpt-image-2"
-    ai_image_size: str = Field(default="1024x1024", pattern=r"^[1-9][0-9]{0,3}x[1-9][0-9]{0,3}$")
-    ai_image_response_format: Literal["b64_json"] = "b64_json"
     ai_timeout_seconds: float = Field(default=120, gt=0, le=600, allow_inf_nan=False)
+    gemini_base_url: HttpUrl = HttpUrl("https://generativelanguage.googleapis.com")
+    gemini_api_key: SecretStr = SecretStr("")
+    gemini_image_model: str = "gemini-2.5-flash-image"
+    gemini_image_aspect_ratio: Literal["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] = "1:1"
+    gemini_timeout_seconds: float = Field(default=120, gt=0, le=600, allow_inf_nan=False)
     cors_origins: list[str] = ["http://127.0.0.1:3000", "http://localhost:3000"]
     auth_hmac_key: SecretStr = SecretStr("")
     auth_cookie_secure: bool = True
@@ -72,20 +74,27 @@ class Settings(BaseSettings):
             raise ValueError("STORAGE_BUCKET must be a bucket ID of 1-100 characters")
         return value
 
-    @field_validator("ai_base_url")
+    @field_validator("ai_base_url", "gemini_base_url")
     @classmethod
     def validate_ai_base_url(cls, value: HttpUrl) -> HttpUrl:
         if (value.scheme != "https" or value.username or value.password
                 or value.query is not None or value.fragment is not None
                 or value.path not in (None, "", "/")):
-            raise ValueError("AI_BASE_URL must be an HTTPS origin without a path or credentials")
+            raise ValueError("AI base URL must be an HTTPS origin without a path or credentials")
         return value
 
-    @field_validator("ai_text_model", "ai_image_model")
+    @field_validator("ai_text_model")
     @classmethod
     def validate_ai_model(cls, value: str) -> str:
-        if value and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", value):
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", value):
             raise ValueError("AI model must be an identifier without whitespace")
+        return value
+
+    @field_validator("gemini_image_model")
+    @classmethod
+    def validate_gemini_model(cls, value: str) -> str:
+        if value and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", value):
+            raise ValueError("Gemini model must be a model ID without path separators")
         return value
 
     @property
@@ -97,8 +106,8 @@ class Settings(BaseSettings):
         return self.ai_openai_base_url + "/chat/completions"
 
     @property
-    def ai_image_url(self) -> str:
-        return str(self.ai_base_url).rstrip("/") + "/api/v1/images"
+    def gemini_image_url(self) -> str:
+        return str(self.gemini_base_url).rstrip("/") + f"/v1beta/models/{self.gemini_image_model}:generateContent"
 
 
 @lru_cache

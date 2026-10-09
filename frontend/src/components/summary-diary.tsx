@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
 import { useAuth } from "@/providers/auth-provider";
 import { apiFetch } from "@/lib/api";
+import { formatEncouragement } from "@/lib/diary-text";
 import styles from "./summary-diary.module.css";
 
 type Summary = { id: string; current_feeling: string; main_concerns: string[]; emotion_tags: string[] };
@@ -52,7 +53,7 @@ function MemberDiary({ summaryId }: { summaryId: string }) {
       <h1>{result.title}</h1><time dateTime={result.diary_date}>{result.diary_date}</time>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className={styles.image} src={result.image_url} alt="요약을 바탕으로 생성한 그림일기" />
-      <p>{result.encouragement_text}</p>
+      <p className={styles.encouragement}>{formatEncouragement(result.encouragement_text)}</p>
       {entryId ? <p role="status">컬렉션에 저장했어요. <Link href={`/collection#entry=${entryId}`}>저장한 일기 보기</Link></p>
         : <button type="button" disabled={pending} onClick={() => void save()}>{pending ? "저장하는 중이에요…" : "컬렉션에 저장하기"}</button>}
     </> : <>

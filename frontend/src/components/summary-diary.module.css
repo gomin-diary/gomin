@@ -1,6 +1,7 @@
 .card { width: min(100% - 32px, 640px); margin: 32px auto; padding: 24px; background: #fffaf2; border-radius: 20px; }
 .card h1 { font-size: 28px; }
 .card p, .card li { line-height: 1.7; }
+.encouragement { white-space: pre-line; }
 .card button { padding: 12px 20px; border: 0; border-radius: 12px; background: #466448; color: white; cursor: pointer; }
 .card button:disabled { opacity: .6; cursor: wait; }
 .image { display: block; width: 100%; height: auto; margin: 16px 0; border-radius: 12px; }

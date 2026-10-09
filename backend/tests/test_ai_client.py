@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from types import SimpleNamespace
@@ -8,8 +9,9 @@ from fastapi import FastAPI
 import httpx
 from pydantic import ValidationError
 
-from app.ai import AIConfigurationError, CodysseyClient
-from app.ai.dependencies import get_ai_client
+from app.ai import AIConfigurationError, CodysseyClient, GeminiClient
+from app.ai.client import MORI_IMAGE_INSTRUCTIONS, MORI_REFERENCE_PATH
+from app.ai.dependencies import get_ai_client, get_image_ai_client
 from app.core.config import Settings
 
 
@@ -22,22 +24,23 @@ def settings(**overrides):
 
 class AISettingsTests(unittest.TestCase):
     def test_environment_key_is_loaded_and_masked(self):
-        with patch.dict(os.environ, {"AI_API_KEY": "test-only-virtual-key"}, clear=True):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-only-google-key", "AI_API_KEY": "test-only-copa-key"}, clear=True):
             config = Settings(_env_file=None, supabase_url="https://example.supabase.co",
                               supabase_secret_key="test-only")
-        self.assertEqual(config.ai_api_key.get_secret_value(), "test-only-virtual-key")
+        self.assertEqual(config.gemini_api_key.get_secret_value(), "test-only-google-key")
+        self.assertEqual(config.ai_api_key.get_secret_value(), "test-only-copa-key")
         for output in (str(config), repr(config), config.model_dump_json()):
-            self.assertNotIn("test-only-virtual-key", output)
+            self.assertNotIn("test-only-google-key", output)
+            self.assertNotIn("test-only-copa-key", output)
 
-    def test_base_paths_do_not_duplicate_v1(self):
-        for origin in ("https://copa.codyssey.kr", "https://copa.codyssey.kr/",
+    def test_model_endpoints_use_the_configured_origin(self):
+        for origin in ("https://generativelanguage.googleapis.com", "https://generativelanguage.googleapis.com/",
                        "https://gateway.example:8443/"):
             with self.subTest(origin=origin):
-                config = settings(ai_base_url=origin)
+                config = settings(ai_base_url=origin, gemini_base_url=origin)
                 base = origin.rstrip("/")
-                self.assertEqual(config.ai_openai_base_url, base + "/v1")
                 self.assertEqual(config.ai_text_url, base + "/v1/chat/completions")
-                self.assertEqual(config.ai_image_url, base + "/api/v1/images")
+                self.assertEqual(config.gemini_image_url, base + "/v1beta/models/gemini-2.5-flash-image:generateContent")
 
     def test_invalid_origin_is_rejected(self):
         for origin in ("http://gateway.example", "https://gateway.example/v1",
@@ -46,29 +49,45 @@ class AISettingsTests(unittest.TestCase):
                        "https://name:placeholder@gateway.example"):
             with self.subTest(origin=origin):
                 with self.assertRaises(ValidationError):
+                    settings(gemini_base_url=origin)
+                with self.assertRaises(ValidationError):
                     settings(ai_base_url=origin)
+
+    def test_copa_environment_is_preserved_and_does_not_override_gemini(self):
+        with patch.dict(os.environ, {"AI_BASE_URL": "https://copa.codyssey.kr", "AI_API_KEY": "old-test-key",
+                                     "AI_TEXT_MODEL": "gpt-5.4-mini", "AI_IMAGE_MODEL": "gpt-image-2"}, clear=True):
+            config = Settings(_env_file=None, supabase_url="https://example.supabase.co",
+                              supabase_secret_key="test-only")
+        self.assertEqual(str(config.gemini_base_url), "https://generativelanguage.googleapis.com/")
+        self.assertEqual(config.gemini_api_key.get_secret_value(), "")
+        self.assertEqual(config.ai_text_model, "gpt-5.4-mini")
+        self.assertEqual(config.ai_api_key.get_secret_value(), "old-test-key")
+        self.assertEqual(str(config.ai_base_url), "https://copa.codyssey.kr/")
+        self.assertEqual(config.gemini_image_model, "gemini-2.5-flash-image")
 
     def test_default_models_are_separate_and_can_be_overridden(self):
         config = settings()
         self.assertEqual(config.ai_text_model, "gpt-5.4-mini")
-        self.assertEqual(config.ai_image_model, "gpt-image-2")
-        self.assertEqual(config.ai_image_response_format, "b64_json")
-        config = settings(ai_text_model="text-example", ai_image_model="image-example")
+        self.assertEqual(config.gemini_image_model, "gemini-2.5-flash-image")
+        config = settings(ai_text_model="text-example", gemini_image_model="image-example")
         self.assertEqual(config.ai_text_model, "text-example")
-        self.assertEqual(config.ai_image_model, "image-example")
+        self.assertEqual(config.gemini_image_model, "image-example")
         for field, value in (("ai_text_model", ""), ("ai_text_model", "model name"),
-                             ("ai_image_model", " "), ("ai_image_model", "model\n")):
+                             ("gemini_image_model", " "), ("gemini_image_model", "model\n"),
+                             ("gemini_image_model", "models/image"), ("gemini_image_model", "image:generateContent")):
             with self.subTest(field=field):
                 with self.assertRaises(ValidationError):
                     settings(**{field: value})
 
-    def test_timeout_and_response_format_are_validated(self):
+    def test_timeout_and_aspect_ratio_are_validated(self):
         for timeout in (0, -1, 601, float("inf"), float("nan")):
             with self.subTest(timeout=timeout):
                 with self.assertRaises(ValidationError):
+                    settings(gemini_timeout_seconds=timeout)
+                with self.assertRaises(ValidationError):
                     settings(ai_timeout_seconds=timeout)
         with self.assertRaises(ValidationError):
-            settings(ai_image_response_format="url")
+            settings(gemini_image_aspect_ratio="1024x1024")
 
 
 class AIClientTests(unittest.IsolatedAsyncioTestCase):
@@ -79,63 +98,94 @@ class AIClientTests(unittest.IsolatedAsyncioTestCase):
             requests.append(request)
             return httpx.Response(200, json={"mock": True})
 
-        config = settings(ai_api_key="test-only-virtual-key", ai_image_model="image-example",
-                          ai_base_url="https://gateway.example/", ai_timeout_seconds=45)
+        config = settings(ai_api_key="test-only-copa-key", ai_base_url="https://copa-gateway.example/", ai_timeout_seconds=30,
+                          gemini_api_key="test-only-google-key", gemini_image_model="image-example",
+                          gemini_base_url="https://gateway.example/", gemini_timeout_seconds=45,
+                          gemini_image_aspect_ratio="16:9")
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
             client = CodysseyClient(http_client, config)
+            image_client = GeminiClient(http_client, config)
             messages = [{"role": "user", "content": "오늘 힘들었어"}]
             text = client.build_text_request(messages)
-            image = client.build_image_request("확정 요약의 그림", size="1024x1024")
+            image = image_client.build_image_request("확정 요약의 그림")
             self.assertEqual(requests, [])  # Construction never sends a paid request.
             await http_client.send(text)
             await http_client.send(image)
             self.assertIs(client.http_client, http_client)
             self.assertFalse(http_client.is_closed)
         self.assertEqual([str(r.url) for r in requests], [
-            "https://gateway.example/v1/chat/completions",
-            "https://gateway.example/api/v1/images",
+            "https://copa-gateway.example/v1/chat/completions",
+            "https://gateway.example/v1beta/models/image-example:generateContent",
         ])
         for request in requests:
             self.assertEqual(request.method, "POST")
-            self.assertEqual(request.headers["Authorization"], "Bearer test-only-virtual-key")
+            self.assertNotIn("test-only-google-key", str(request.url))
             self.assertEqual(request.headers["Content-Type"], "application/json")
-            self.assertTrue(all(t == 45 for t in request.extensions["timeout"].values()))
+        self.assertEqual(requests[0].headers["Authorization"], "Bearer test-only-copa-key")
+        self.assertNotIn("x-goog-api-key", requests[0].headers)
+        self.assertEqual(requests[1].headers["x-goog-api-key"], "test-only-google-key")
+        self.assertNotIn("Authorization", requests[1].headers)
+        self.assertTrue(all(t == 30 for t in requests[0].extensions["timeout"].values()))
+        self.assertTrue(all(t == 45 for t in requests[1].extensions["timeout"].values()))
         self.assertEqual(json.loads(requests[0].content), {
             "model": "gpt-5.4-mini", "messages": messages,
         })
         self.assertEqual(json.loads(requests[1].content), {
-            "model": "image-example", "prompt": "확정 요약의 그림", "size": "1024x1024",
-            "response_format": "b64_json",
+            "contents": [{"role": "user", "parts": [
+                {"text": MORI_IMAGE_INSTRUCTIONS},
+                {"inlineData": {"mimeType": "image/png", "data": base64.b64encode(MORI_REFERENCE_PATH.read_bytes()).decode("ascii")}},
+                {"text": "확정 요약의 그림"},
+            ]}],
+            "generationConfig": {"responseModalities": ["TEXT", "IMAGE"], "imageConfig": {"aspectRatio": "16:9"}},
         })
 
     async def test_unconfigured_or_invalid_key_never_builds_a_request(self):
         for key in ("", " ", "test key", "test\nkey", "test\rkey", "키", "test\x7fkey"):
             with self.subTest(key_length=len(key)):
                 async with httpx.AsyncClient() as http_client:
-                    client = CodysseyClient(http_client, settings(ai_api_key=key,
-                                                                 ai_image_model="image-example"))
+                    config = settings(ai_api_key=key, gemini_api_key=key, gemini_image_model="image-example")
+                    client = CodysseyClient(http_client, config)
+                    image_client = GeminiClient(http_client, config)
                     with patch.object(http_client, "build_request") as build:
-                        for operation in (lambda: client.build_text_request([]),
-                                          lambda: client.build_image_request("prompt", size="auto")):
+                        for operation, field in ((lambda: client.build_text_request([]), "AI_API_KEY"),
+                                                  (lambda: image_client.build_image_request("prompt"), "GEMINI_API_KEY")):
                             with self.assertRaises(AIConfigurationError) as caught:
                                 operation()
                             self.assertEqual(str(caught.exception),
-                                             "AI_API_KEY must be a non-empty ASCII token")
+                                             f"{field} must be a non-empty ASCII token")
                         build.assert_not_called()
 
     async def test_missing_image_model_does_not_fall_back_to_text_model(self):
         async with httpx.AsyncClient() as http_client:
-            client = CodysseyClient(http_client, settings(ai_api_key="test-only", ai_image_model=""))
+            client = GeminiClient(http_client, settings(gemini_api_key="test-only", gemini_image_model=""))
             with patch.object(http_client, "build_request") as build:
-                with self.assertRaisesRegex(AIConfigurationError, "AI_IMAGE_MODEL"):
-                    client.build_image_request("prompt", size="auto")
+                with self.assertRaisesRegex(AIConfigurationError, "GEMINI_IMAGE_MODEL"):
+                    client.build_image_request("prompt")
                 build.assert_not_called()
 
-    async def test_default_image_request_uses_gpt_image_2(self):
+    async def test_default_image_request_uses_gemini_flash_image(self):
         async with httpx.AsyncClient() as http_client:
-            client = CodysseyClient(http_client, settings(ai_api_key="test-only"))
-            request = client.build_image_request("요약의 그림", size="1024x1024")
-        self.assertEqual(json.loads(request.content)["model"], "gpt-image-2")
+            client = GeminiClient(http_client, settings(gemini_api_key="test-only"))
+            request = client.build_image_request("요약의 그림")
+        self.assertEqual(request.url.path, "/v1beta/models/gemini-2.5-flash-image:generateContent")
+
+    async def test_image_request_uses_photorealistic_landscape_and_illustrated_mori_without_text(self):
+        async with httpx.AsyncClient() as http_client:
+            client = GeminiClient(http_client, settings(gemini_api_key="test-only"))
+            request = client.build_image_request("모리가 저녁 창가에서 쉬는 장면")
+        parts = json.loads(request.content)["contents"][0]["parts"]
+        instructions = parts[0]["text"]
+        for requirement in ("natural landscape as the default", "from behind", "from the front", "full-body shot is optional",
+                            "photorealistic natural landscape", "real landscape photograph", "For Mori only", "do not photorealistically redesign Mori",
+                            "character identity guide", "quietly poetic", "forced smile", "delicate watercolor texture", "contact shadows",
+                            "gentle rim light", "intimate composition", "not as a sticker", "titles, dates, borders, film strips, UI",
+                            "Do not reserve blank space for a message"):
+            self.assertIn(requirement, instructions)
+        self.assertNotIn("40-50%", instructions)
+        self.assertNotIn("central 60%", instructions)
+        self.assertNotIn("added by the application", instructions)
+        self.assertEqual(parts[1]["inlineData"]["mimeType"], "image/png")
+        self.assertEqual(parts[2]["text"], "모리가 저녁 창가에서 쉬는 장면")
 
     async def test_lifespan_owns_the_shared_client_and_dependency(self):
         config = settings()
@@ -151,6 +201,11 @@ class AIClientTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIs(client, app.state.ai_client)
                 self.assertIs(client.http_client, shared)
                 self.assertIs(client.settings, config)
+                self.assertIsInstance(client, CodysseyClient)
+                image_client = get_image_ai_client(SimpleNamespace(app=app))
+                self.assertIsInstance(image_client, GeminiClient)
+                self.assertIs(image_client.http_client, shared)
+                self.assertIs(image_client.settings, config)
                 self.assertFalse(shared.is_closed)
             self.assertTrue(shared.is_closed)
 

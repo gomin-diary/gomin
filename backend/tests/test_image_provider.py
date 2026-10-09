@@ -1,44 +1,57 @@
 import asyncio
 import base64
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 import httpx
 
-from app.ai import AIConfigurationError, AIRequestError, CodysseyClient
+from app.ai import AIConfigurationError, AIRequestError, GeminiClient
+from app.ai.client import MORI_IMAGE_INSTRUCTIONS, MORI_REFERENCE_PATH, MORI_REFERENCE_MAX_BYTES
 from test_ai_client import settings
+
+
+def image_response(data, *, mime_type="image/png", finish_reason="STOP"):
+    return {"candidates": [{"finishReason": finish_reason, "content": {"role": "model", "parts": [
+        {"text": "Generated image"}, {"inlineData": {"mimeType": mime_type, "data": data}},
+    ]}}]}
 
 
 class ImageProviderTests(unittest.IsolatedAsyncioTestCase):
     async def generate(self, handler, **overrides):
-        config = settings(ai_api_key="test-only", ai_image_model="image-example", **overrides)
+        config = settings(gemini_api_key="test-only", gemini_image_model="image-example", **overrides)
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
-            return await CodysseyClient(http_client, config).generate_image("고민을 담은 그림", size="1024x1024")
+            return await GeminiClient(http_client, config).generate_image("고민을 담은 그림")
 
     async def test_base64_endpoint_request_and_bytes(self):
         calls = []
         data = b"image-bytes-for-adapter-test"
         def handle(request):
             calls.append(request)
-            self.assertEqual(str(request.url), "https://copa.codyssey.kr/api/v1/images")
-            self.assertEqual(request.headers["Authorization"], "Bearer test-only")
+            self.assertEqual(str(request.url), "https://generativelanguage.googleapis.com/v1beta/models/image-example:generateContent")
+            self.assertEqual(request.headers["x-goog-api-key"], "test-only")
             self.assertEqual(json.loads(request.content), {
-                "model": "image-example", "prompt": "고민을 담은 그림", "size": "1024x1024",
-                "response_format": "b64_json",
+                "contents": [{"role": "user", "parts": [
+                    {"text": MORI_IMAGE_INSTRUCTIONS},
+                    {"inlineData": {"mimeType": "image/png", "data": base64.b64encode(MORI_REFERENCE_PATH.read_bytes()).decode("ascii")}},
+                    {"text": "고민을 담은 그림"},
+                ]}],
+                "generationConfig": {"responseModalities": ["TEXT", "IMAGE"], "imageConfig": {"aspectRatio": "1:1"}},
             })
-            return httpx.Response(200, json={"result": {"images": [
-                {"b64_json": base64.b64encode(data).decode(), "url": "https://session-only.example"},
-            ]}})
+            return httpx.Response(200, json=image_response(base64.b64encode(data).decode()))
         self.assertEqual(await self.generate(handle), data)
         self.assertEqual(len(calls), 1)
 
     async def test_invalid_responses_are_sanitized(self):
-        for body in ({}, [], {"result": {"images": []}},
-                     {"result": {"images": [{"url": "https://session-only.example"}]}},
-                     {"result": {"images": [{"b64_json": ""}]}},
-                     {"result": {"images": [{"b64_json": "not base64"}]}},
-                     {"result": {"images": [{"b64_json": 4}]}},
-                     {"result": {"images": [{"b64_json": "é"}]}}):
+        for body in ({}, [], {"candidates": []}, {"promptFeedback": {"blockReason": "SAFETY"}},
+                     {"candidates": [{"finishReason": "STOP", "content": {"role": "model", "parts": [{"text": "refused"}]}}]},
+                     {"candidates": [{"finishReason": "STOP", "content": {"role": "model", "parts": [None]}}]},
+                     image_response(""), image_response("not base64"), image_response(4), image_response("é"),
+                     image_response("YQ==", mime_type="text/html"),
+                     image_response("YQ==", finish_reason="SAFETY"),
+                     image_response("YQ==", finish_reason="MAX_TOKENS")):
             with self.subTest(body_type=type(body).__name__):
                 with self.assertRaises(AIRequestError) as caught:
                     await self.generate(lambda r: httpx.Response(200, json=body))
@@ -52,9 +65,8 @@ class ImageProviderTests(unittest.IsolatedAsyncioTestCase):
     async def test_limits_cover_encoded_response_and_decoded_bytes(self):
         for raw in (b"12345", b"" ):
             with self.assertRaises(AIRequestError):
-                await self.generate(lambda r: httpx.Response(200, json={"result": {"images": [
-                    {"b64_json": base64.b64encode(raw).decode()},
-                ]}}), storage_max_file_size_bytes=4)
+                await self.generate(lambda r: httpx.Response(200, json=image_response(base64.b64encode(raw).decode())),
+                                    storage_max_file_size_bytes=4)
         with self.assertRaises(AIRequestError) as caught:
             await self.generate(lambda r: httpx.Response(200, content=b"x" * 70000),
                                 storage_max_file_size_bytes=4)
@@ -89,7 +101,7 @@ class ImageProviderTests(unittest.IsolatedAsyncioTestCase):
         config = settings()
         async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: self.fail("must not send"))) as http_client:
             with self.assertRaises(AIConfigurationError):
-                await CodysseyClient(http_client, config).generate_image("prompt", size="auto")
+                await GeminiClient(http_client, config).generate_image("prompt")
 
     async def test_stream_is_closed_when_total_timeout_expires(self):
         class SlowStream(httpx.AsyncByteStream):
@@ -101,6 +113,36 @@ class ImageProviderTests(unittest.IsolatedAsyncioTestCase):
                 self.closed = True
         stream = SlowStream()
         with self.assertRaises(AIRequestError) as caught:
-            await self.generate(lambda r: httpx.Response(200, stream=stream), ai_timeout_seconds=0.01)
+            await self.generate(lambda r: httpx.Response(200, stream=stream), gemini_timeout_seconds=0.01)
         self.assertEqual(caught.exception.code, "TIMEOUT")
         self.assertTrue(stream.closed)
+
+    async def test_thought_image_is_skipped_and_final_image_is_used(self):
+        body = image_response("ZmluYWw=")
+        body["candidates"][0]["content"]["parts"].insert(0, {
+            "thought": True, "inlineData": {"mimeType": "image/png", "data": "dGhvdWdodA=="},
+        })
+        self.assertEqual(await self.generate(lambda r: httpx.Response(200, json=body)), b"final")
+
+    def test_bundled_reference_matches_frontend_mori_and_is_valid_png(self):
+        from PIL import Image
+
+        source = Path(__file__).resolve().parents[2] / "frontend/public/images/character/mori.png"
+        self.assertEqual(MORI_REFERENCE_PATH.read_bytes(), source.read_bytes())
+        self.assertLessEqual(MORI_REFERENCE_PATH.stat().st_size, MORI_REFERENCE_MAX_BYTES)
+        with Image.open(MORI_REFERENCE_PATH) as reference:
+            self.assertEqual(reference.format, "PNG")
+            reference.verify()
+
+    async def test_missing_or_invalid_reference_never_sends(self):
+        with TemporaryDirectory() as directory:
+            for name in ("missing.png", "invalid.png", "oversized.png"):
+                path = Path(directory) / name
+                if name == "invalid.png":
+                    path.write_bytes(b"not a PNG")
+                elif name == "oversized.png":
+                    path.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * MORI_REFERENCE_MAX_BYTES)
+                with self.subTest(name=name), patch("app.ai.client.MORI_REFERENCE_PATH", path):
+                    with self.assertRaises(AIConfigurationError) as caught:
+                        await self.generate(lambda r: self.fail("must not send without Mori"))
+                    self.assertNotIn(directory, str(caught.exception))
