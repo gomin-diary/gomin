@@ -37,3 +37,12 @@ test("repository source links point to GitHub without serving source files", () 
   assert.ok(!html.includes('href="../frontend/.env.local"'));
   assert.ok(!html.includes('blob/main/frontend/.env.local'));
 });
+
+test("footnote references retain their accessible label and return link alongside document heading IDs", () => {
+  const html = render("# API\n\nOpenAPI[^openapi]\n\n## 다음 내용\n\n본문\n\n[^openapi]: API 사용법을 기록하는 공통 규칙.");
+  assert.match(html, /id="다음-내용"/);
+  assert.match(html, /<h2[^>]*id="footnote-label"[^>]*>각주<\/h2>/);
+  assert.match(html, /href="#user-content-fn-openapi"[^>]*id="user-content-fnref-openapi"[^>]*aria-describedby="footnote-label"/);
+  assert.match(html, /<li id="user-content-fn-openapi">/);
+  assert.match(html, /href="#user-content-fnref-openapi"[^>]*aria-label="본문으로 돌아가기"/);
+});

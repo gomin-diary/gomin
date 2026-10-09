@@ -66,7 +66,7 @@ PC에서는 상단 메뉴, 모바일에서는 하단 메뉴를 사용한다. 모
 
 ## Favicon과 공유 메타데이터
 
-루트 레이아웃은 `/images/icons/sprout.svg`를 SVG favicon으로 사용한다. 공통 Open Graph와 Twitter `summary_large_image`에는 기존 서비스 제목·설명과 `/images/og/gomin-diary.png`(1200×630)를 제공한다. 공유 이미지는 프로필 캐릭터 PNG를 참조해 생성한 크림색 배경의 가로형 카드이며 원본 네비게이션 자산은 유지한다. 이미지의 절대 URL 설정은 [프론트엔드 배포 안내](../deployment/README.md#프론트엔드--vercel)를 따른다.
+루트 레이아웃은 `/images/icons/sprout.svg`를 SVG favicon으로 사용한다. 공통 Open Graph와 Twitter `summary_large_image`에는 기존 서비스 제목·설명과 `/images/og/gomin-diary.png`(1200×630)를 제공한다. 공유 이미지는 프로필 캐릭터 PNG를 참조해 생성한 크림색 배경의 가로형 카드이며 원본 네비게이션 자산은 유지한다. 이미지의 절대 URL 설정은 [프론트엔드 배포 안내](../deployment/vercel.md#환경변수와-공유-이미지)를 따른다.
 
 ## 검증 기준
 

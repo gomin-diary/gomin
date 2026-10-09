@@ -4,3 +4,4 @@ supabase>=2,<3
 httpx>=0.28,<1
 pydantic-settings>=2.7,<3
 python-dotenv>=1,<2
+Pillow>=12,<13

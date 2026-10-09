@@ -1,5 +1,23 @@
 # 프로젝트 문서
 
+## 스터디·웹 개발 기초
+
+- [웹 개발 기초 목차](study/README.md)
+- [웹 서비스는 어떻게 움직일까](study/web/web-basics.md): 브라우저, 클라이언트·서버와 전체 흐름
+- [HTTP와 요청·응답](study/web/http.md): URL, 헤더·본문, 상태 코드와 JSON
+- [API란 무엇일까](study/api/api-basics.md): API, 엔드포인트, 명세와 SDK
+- [REST API](study/api/rest-api.md): 리소스, HTTP 메서드, 멱등성과 설계 원칙
+- [프론트엔드와 Next.js](study/application/frontend.md): 화면 기술, 컴포넌트와 렌더링
+- [백엔드와 FastAPI·Uvicorn](study/application/backend.md): 요청 처리, 서버 프로그램과 비동기
+- [데이터베이스와 Supabase](study/data/database.md): 테이블·관계, SQL, 트랜잭션과 Data API
+- [파일 저장소와 Supabase Storage](study/data/storage.md): 파일, 버킷, 객체 경로와 접근 범위
+- [인증과 인가](study/application/authentication.md): 사용자 확인·권한과 쿠키·세션
+- [CORS와 출처](study/application/cors.md): 브라우저 정책, 사전 요청과 쿠키 전송
+- [배포의 기본 개념](study/deployment/deployment-basics.md): 실행 환경, 빌드·실행과 환경변수
+- [배포 플랫폼의 역할](study/deployment/platforms.md): Vercel·Render·Supabase의 역할과 연결
+- [모니터링과 UptimeRobot](study/operations/monitoring.md): 로그·지표, 상태 API와 검사 범위
+- [웹 개발 용어 사전](study/glossary.md)
+
 ## 시작하기·로컬 개발
 
 - [공통 설치 흐름](local-development/setup/README.md): 설치 대상 선택과 재설치
@@ -31,12 +49,13 @@
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
 - [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [가이드 화면](frontend/guide-ui.md): 이용 단계, PC·모바일 배치와 Figma 일러스트 출처
-- [컬렉션 조회 화면](frontend/collection-ui.md): 모든 로그인 회원의 공통 더미 목록·상세, PC 필름·팝업, 모바일 상세와 검증
+- [컬렉션 조회 화면](frontend/collection-ui.md): 본인 저장 목록·상세 API 연동, PC 필름·팝업과 모바일 상세
 - [공개 문서 화면](frontend/docs-ui.md): `/docs/` 공개 범위, 문서 생성·링크·레이아웃과 배포
 - [공개 문서 영역 설계 — 검토안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3670018): 원본 Markdown을 유지하는 `/docs/` 공개 화면 설계
 
 ## 데이터베이스
 
+- [요약 기반 그림일기 MVP](engineering/diary-mvp.md): 직접 이미지 생성, 컬렉션 저장·목록·상세 조회
 - [대화·컬렉션 ERD](engineering/conversation-collection-erd.md): 테이블·관계·제약조건, Supabase SQL과 ID 생성·재시도 관련 질문·답변
 - [Supabase 마이그레이션 관리](engineering/database-migrations.md): SQL 작성·검토, 로컬·PR 검증, 운영 적용과 실패 처리
 
@@ -50,6 +69,11 @@
 
 ## 배포·운영
 
-- [Vercel / Render / Supabase Cloud 배포](deployment/README.md): 서비스별 설정, Supabase 마이그레이션 워크플로, 메일 발신 도메인과 배포 후 확인
+- [배포·운영 개요](deployment/README.md): 서비스 구성, 공통 배포 순서와 배포 후 확인
+- [Vercel — Next.js](deployment/vercel.md): 프론트엔드 빌드·환경변수·공개 문서와 배포 확인
+- [Render — FastAPI·Uvicorn](deployment/render.md): 백엔드 실행·인증·Google OAuth·메일 설정과 배포 확인
+- [Supabase — 데이터베이스](deployment/supabase-database.md): Data API·서버 연결·운영 마이그레이션과 DB 상태 확인
+- [Supabase — Storage](deployment/supabase-storage.md): 업로드 모듈·버킷·크기·MIME 제한과 운영 확인 범위
+- [UptimeRobot — 모니터링](deployment/uptimerobot.md): 백엔드 상태 API의 5분 간격 확인·이메일 알림과 장애 대응
 
 [프로젝트 README](../README.md)

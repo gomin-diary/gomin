@@ -1,6 +1,8 @@
 # 대화·컬렉션 ERD
 
-대화 이후 새로 생성할 요약·일기·이미지를 저장하는 신규 업무 테이블 설계다. 기존 `members`와 신규 테이블 6개를 연결한다. [Supabase 마이그레이션 SQL](../../supabase/migrations/20261007071605_conversation_collection_schema.sql)을 작성했으며 실제 Supabase DB에는 아직 적용하지 않았다.
+대화 이후 새로 생성할 요약·일기·이미지를 저장하는 신규 업무 테이블 설계다. 기존 `members`와 신규 테이블 6개를 연결한다. [Supabase 마이그레이션 SQL](../../supabase/migrations/20261007071605_conversation_collection_schema.sql)은 최초 스키마이며 운영 적용 상태는 별도로 확인한다.
+
+현재 이미지 MVP는 [요약 기반 그림일기 MVP](diary-mvp.md)를 따른다. 이미지 생성은 요청 안에서 직접 수행하며 이미지 job·큐·lease·폴링을 사용하지 않는다. 기존 마이그레이션 이력을 보존한 [보정 SQL](../../supabase/migrations/20261008054127_mvp_direct_diary_image.sql)로 결과를 요약에 직접 연결한다. 아래 job 관련 설명 중 대화·요약 부분은 기존 설계이며 이미지 작업 부분은 이전 설계의 호환 구조다.
 
 Jira와 연결된 [테이블 설계 요약](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/4128771/GOMIN-74)에는 주요 컬럼·관계만 두고, 전체 ERD와 설계 이유·질문·답변은 이 문서에서 관리한다.
 
@@ -69,7 +71,7 @@ erDiagram
         uuid id PK "완성된 그림일기 결과 ID"
         uuid member_id FK "소유 회원"
         uuid summary_id FK "사용한 확정 요약"
-        uuid generation_job_id FK, UK "이미지 생성 작업"
+        uuid generation_job_id FK, UK "nullable, 기존 이미지 작업 호환"
         text title "기록 제목"
         text encouragement_text "위로 문구"
         date diary_date "completed_at 기준 한국 날짜"
@@ -97,7 +99,7 @@ erDiagram
     conversation_summaries o|--o{ generation_jobs : image_input
     generation_jobs o|--o| conversation_messages : reply_output
     generation_jobs ||--o| conversation_summaries : summary_output
-    generation_jobs ||--o| diary_results : image_output
+    generation_jobs o|--o| diary_results : legacy_image_output
     conversation_summaries ||--o{ diary_results : based_on
     diary_results ||--o| collection_entries : saved_once
 ```
@@ -128,7 +130,7 @@ erDiagram
 | 작업 접수 | `UNIQUE(member_id, idempotency_key)`. 같은 키에 다른 입력은 거절 |
 | 답변 작업 | `UNIQUE(input_message_id) WHERE kind = 'reply'` |
 | 작업 출력 | 각 출력 테이블의 `generation_job_id`는 UNIQUE |
-| 이미지 결과 | `summary_id = generation_jobs.input_summary_id`. 확정 요약을 참조 |
+| 이미지 결과 | MVP는 확정 `summary_id`를 직접 참조하며 `generation_job_id`는 NULL. 기존 job 연결 기록만 입력 일치 제약 적용 |
 | 기록 날짜 | `diary_date = (completed_at AT TIME ZONE 'Asia/Seoul')::date` |
 | 이미지 경로 | `UNIQUE(image_bucket, image_object_key)`. 이미지 바이너리·서명 URL은 DB에 저장하지 않음 |
 | 컬렉션 저장 | `UNIQUE(source_result_id)`. 같은 결과를 다시 저장하면 기존 항목과 saved_at 반환 |
@@ -198,13 +200,14 @@ PK·UNIQUE가 지원하는 같은 키의 인덱스는 중복 생성하지 않는
 
 ### 요약부터 컬렉션 저장까지
 
-1. 프론트가 요약 요청 키를 만든다. 서버는 summary 작업을 접수하고 대화 범위를 source_until_seq_no로 고정한다.
-2. 작업 성공 시 요약 S1·version=1을 저장한다. 추가 대화 후에는 새 작업으로 S2·version=2를 만든다.
-3. 프론트가 이미지 요청 키를 보낸다. 서버는 요약의 최신성·입력 범위를 확인하고 S1 확정과 image 작업 JI1 접수를 함께 처리한다. `JI1.input_summary_id = S1`이다.
-4. 이미지 생성·업로드 성공 시 R1을 저장한다. `R1.summary_id = S1`, `R1.generation_job_id = JI1`이다. 결과 저장·작업 성공·대화 단계 갱신을 함께 커밋한다.
-5. 사용자가 R1을 저장하면 `E1.source_result_id = R1`인 컬렉션 항목을 만든다. 요약·이미지를 다시 생성하지 않는다.
+1. 대화 기능이 요약 S1을 DB에 저장한다.
+2. 프론트는 summary_id=S1로 이미지 생성 API를 요청한다.
+3. 서버는 본인의 요약을 확인하고 텍스트 모델로 제목·위로·이미지 프롬프트를 만든 뒤 이미지 모델을 호출한다.
+4. 이미지 업로드 후 R1을 저장한다. `R1.summary_id=S1`, `R1.generation_job_id=NULL`이며 완료 결과를 바로 반환한다.
+5. 저장 버튼으로 `E1.source_result_id=R1`인 컬렉션 항목을 만든다.
+6. 목록은 본인의 E1을 조회하고 상세는 `E1 → R1 → S1`을 조회한다.
 
-실패 재시도는 같은 작업 ID·입력을 유지하고 attempt_count와 실행권을 갱신한다. 다른 그림 만들기는 새 요청 키·작업 ID·결과 ID를 만든다. 같은 요청 키를 재전송하면 기존 작업을 반환하고, 입력이 달라졌다면 충돌로 처리한다. 완료 시 현재 lease_token을 확인해 이전 워커의 늦은 완료를 거절한다.
+이미지 재생성 정책·DB 큐·lease·자동 재시도·상태 폴링은 MVP에서 제외한다.
 
 ## 설계 관련 질문과 답변
 
@@ -243,29 +246,11 @@ PK·UNIQUE가 지원하는 같은 키의 인덱스는 중복 생성하지 않는
 
 구조를 단순화하려면 메시지 id 자체를 프론트에서 생성하고 재사용해 client_message_id를 생략할 수도 있다. 현재 안은 전송번호 C1과 저장 메시지번호 M1을 분리한다. 단순화할 경우 생성 주체·충돌 검사·외래키 참조 방식을 함께 변경해야 한다.
 
-### input_summary_id는 어디에 저장되는가?
+### 이미지 생성에 사용한 요약은 어디에 저장되는가?
 
-요약 본문은 `conversation_summaries`에 저장하고, 그 요약을 이미지 작업의 입력으로 선택한 사실은 `generation_jobs.input_summary_id`에 저장한다. 새 요약 ID를 발급하는 컬럼이 아니라 이미 생성된 요약의 ID를 참조하는 FK다.
-
-| 테이블 | 예시 |
-| --- | --- |
-| `conversation_summaries` | id=S1, conversation_id=A, version=1 |
-| `generation_jobs` | id=JI1, kind=image, input_summary_id=S1 |
-| `diary_results` | id=R1, summary_id=S1, generation_job_id=JI1 |
-| `collection_entries` | id=E1, source_result_id=R1 |
-
-JI1.input_summary_id는 작업이 어떤 요약을 입력받았는지, R1.summary_id는 생성 결과가 어떤 요약에 기반하는지를 나타낸다. 두 값은 같아야 한다. 컬렉션에서 요약과 대화를 찾는 경로는 `E1 → R1 → S1 → A`다.
-
-### 실패 재시도와 다른 그림 만들기는 무엇이 다른가?
-
-| 상황 | 작업 | 입력 요약 | 결과 |
-| --- | --- | --- | --- |
-| 최초 접수 응답이 유실되어 같은 요청 키로 재전송 | 기존 JI1 반환 | S1 | 기존 상태·결과 조회 |
-| JI1 실패 후 명시적으로 재시도 | JI1 유지, 실행 횟수 증가 | S1 유지 | 성공 시 R1 하나 저장 |
-| 다른 그림 만들기 | 새 요청 키로 새 JI2 생성 | S1 유지 | 새 R2 생성 |
-| 추가 대화 후 새 요약으로 그림 생성 | 새 JI3 생성 | 새 S2 | 새 R3 생성 |
-
-작업이 실패했다고 입력을 다른 요약으로 바꾸지는 않는다. 대화가 추가되거나 최신 요약이 바뀌어 원래 입력 경계가 현재 단계와 맞지 않으면 새 작업을 요청한다. 같은 요청 키의 재전송은 기존 작업을 반환하며 실패 작업을 자동 재실행하지 않는다.
+MVP는 `diary_results.summary_id`에 저장된 요약 ID를 직접 참조한다.
+이미지 job은 생성하지 않는다. 컬렉션에서 요약과 대화를 찾는 경로는 `E1 → R1 → S1 → A`다.
+`generation_jobs.input_summary_id`는 기존 이미지 작업과 연결된 기록의 호환성을 위해 보존한다.
 
 ## 확정한 저장 규칙
 
@@ -301,7 +286,7 @@ DB 표현은 `diary_date = (completed_at AT TIME ZONE 'Asia/Seoul')::date`다. �
 
 SQL은 테이블·FK·인덱스·검증 트리거·RLS·권한을 추가한다. 신규 6개 테이블의 직접 접근은 서버의 service_role에만 허용하며, UPDATE는 대화·작업과 요약의 confirmed_at으로 제한하고 DELETE 권한은 부여하지 않는다. 세션으로 회원을 확인하고 소유권에 맞춰 조회하는 책임은 백엔드에 있다.
 
-메시지·작업 접수, 순번·요약 버전 배정, 중복 요청의 기존 행 반환, 작업 재시도·lease_token 조건부 완료 처리는 이후 백엔드와 트랜잭션 RPC에서 구현해야 한다. 이미지용 비공개 Storage 버킷 생성·정책도 이 SQL의 범위에 포함하지 않았다.
+메시지·요약 생성 API는 별도 대화 기능에서 구현한다. 이미지 생성·비공개 Storage는 [MVP 구현](diary-mvp.md)을 따른다. 이미지 큐 함수는 보정 SQL에서 제거한다.
 
 분리된 임시 PostgreSQL(PGlite)에서 기존 인증 마이그레이션부터 전체 SQL 적용과 신규 테이블의 정상·실패 동작을 검증했다. 실제 Supabase의 Data API·Storage 연동과 여러 연결 사이의 잠금 경합은 아직 검증하지 않았다.
 

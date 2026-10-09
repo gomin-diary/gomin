@@ -18,3 +18,12 @@ def get_file_storage(
     settings: Annotated[Settings, Depends(get_storage_settings)],
 ) -> SupabaseFileStorage:
     return SupabaseFileStorage(client, settings)
+
+
+def get_diary_image_storage(
+    client: Annotated[AsyncClient, Depends(get_supabase)],
+    settings: Annotated[Settings, Depends(get_storage_settings)],
+):
+    from app.storage.diary_images import DiaryImageStorage
+    image_settings = settings.model_copy(update={"storage_bucket": settings.diary_image_bucket})
+    return DiaryImageStorage(SupabaseFileStorage(client, image_settings), image_settings)

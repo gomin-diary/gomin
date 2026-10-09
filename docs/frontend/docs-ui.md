@@ -29,6 +29,8 @@ PC에서는 문서 메뉴·본문·본문 목차를 나란히 표시한다. 문�
 
 제목·목록·표·코드·인용·GFM 체크 목록과 Mermaid 도표를 지원한다. 긴 표와 코드는 영역 안에서 가로 스크롤한다. Mermaid 도표 원본은 접을 수 있는 코드 영역에 제공하며 도표 렌더링 실패 시 코드를 펼쳐 표시한다. HTML·MDX 실행은 제공하지 않는다.
 
+각주는 본문의 용어 뒤에 `[^용어]`를 붙이고 문서 아래에 `[^용어]: 설명`을 적는다. 본문에는 작은 번호를 표시하고 문서 하단에는 구분선과 본문보다 작은 글씨로 설명을 보여준다. 번호를 누르면 각주로 이동하고 각주 끝의 화살표를 누르면 본문으로 돌아간다.
+
 ## 생성과 실행
 
 `frontend/scripts/generate-docs.mjs`가 원본을 읽고 Git에서 제외한 `frontend/src/generated/docs.json`을 만든다. 루트 공통 실행기와 frontend의 `dev`·`build` 명령이 서버 시작·재시작과 프로덕션 빌드 전에 자동 생성한다. 생성 오류가 있으면 서버 시작 또는 빌드를 중단한다.
@@ -45,7 +47,7 @@ npm --prefix frontend run docs:generate
 
 `frontend/src/app/(service)/layout.tsx`가 서비스용 Provider·Toast·스타일을 관리한다. 루트 레이아웃은 공통 HTML과 메타데이터만 제공한다. `frontend/src/app/docs/`는 독립된 문서 레이아웃을 사용한다. 기존 서비스 URL은 유지되며 문서에서 서비스로 이동하면 서비스 인증 상태를 확인한다.
 
-Vercel의 Root Directory는 `frontend`를 사용하고 외부 파일 포함 옵션을 활성화한다. `frontend/vercel.json`의 `ignoreCommand`가 프론트엔드·루트 docs·루트 README 변경을 빌드 대상으로 포함한다. 자세한 설정은 [배포 안내](../deployment/README.md#프론트엔드--vercel)를 따른다.
+Vercel의 Root Directory는 `frontend`를 사용하고 외부 파일 포함 옵션을 활성화한다. `frontend/vercel.json`의 `ignoreCommand`가 프론트엔드·루트 docs·루트 README 변경을 빌드 대상으로 포함한다. 자세한 설정은 [Vercel 배포 안내](../deployment/vercel.md#공개-문서-빌드)를 따른다.
 
 ## 검증
 

@@ -1,13 +1,14 @@
 import { createElement } from "react";
 import Markdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit";
+import { SKIP, visit } from "unist-util-visit";
 import { analyzeMarkdown, repositorySourceUrl, resolveDocumentLink } from "./docs-markdown.mjs";
 
 function assignHeadingIds(options) {
   return tree => {
     let index = 0;
     visit(tree, "element", node => {
+      if (node.properties.dataFootnotes) return SKIP;
       if (/^h[1-6]$/.test(node.tagName)) {
         node.properties.id = options.headings[index++]?.id;
       }
@@ -20,6 +21,7 @@ export function MarkdownContent({ markdown, source, documents, Diagram }) {
   return createElement(Markdown, {
     skipHtml: true,
     remarkPlugins: [remarkGfm],
+    remarkRehypeOptions: { footnoteLabel: "각주", footnoteBackLabel: "본문으로 돌아가기" },
     rehypePlugins: [[assignHeadingIds, { headings }]],
     urlTransform: (href, key) => {
       const safe = defaultUrlTransform(href);
