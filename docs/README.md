@@ -1,5 +1,23 @@
 # 프로젝트 문서
 
+## 스터디·웹 개발 기초
+
+- [웹 개발 기초 목차](study/README.md)
+- [웹 서비스는 어떻게 움직일까](study/web/web-basics.md): 브라우저, 클라이언트·서버와 전체 흐름
+- [HTTP와 요청·응답](study/web/http.md): URL, 헤더·본문, 상태 코드와 JSON
+- [API란 무엇일까](study/api/api-basics.md): API, 엔드포인트, 명세와 SDK
+- [REST API](study/api/rest-api.md): 리소스, HTTP 메서드, 멱등성과 설계 원칙
+- [프론트엔드와 Next.js](study/application/frontend.md): 화면 기술, 컴포넌트와 렌더링
+- [백엔드와 FastAPI·Uvicorn](study/application/backend.md): 요청 처리, 서버 프로그램과 비동기
+- [데이터베이스와 Supabase](study/data/database.md): 테이블·관계, SQL, 트랜잭션과 Data API
+- [파일 저장소와 Supabase Storage](study/data/storage.md): 파일, 버킷, 객체 경로와 접근 범위
+- [인증과 인가](study/application/authentication.md): 사용자 확인·권한과 쿠키·세션
+- [CORS와 출처](study/application/cors.md): 브라우저 정책, 사전 요청과 쿠키 전송
+- [배포의 기본 개념](study/deployment/deployment-basics.md): 실행 환경, 빌드·실행과 환경변수
+- [배포 플랫폼의 역할](study/deployment/platforms.md): Vercel·Render·Supabase의 역할과 연결
+- [모니터링과 UptimeRobot](study/operations/monitoring.md): 로그·지표, 상태 API와 검사 범위
+- [웹 개발 용어 사전](study/glossary.md)
+
 ## 시작하기·로컬 개발
 
 - [공통 설치 흐름](local-development/setup/README.md): 설치 대상 선택과 재설치
