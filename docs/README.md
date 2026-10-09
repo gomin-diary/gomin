@@ -31,12 +31,13 @@
 - [공용 화면과 배경 매핑](frontend/shared-ui.md): 메뉴 경로, 노출 기준, Figma 자산과 반응형 표시
 - [홈 화면](frontend/home-ui.md): 소개·대화 시작, PC·모바일 배치와 Figma 자산 출처
 - [가이드 화면](frontend/guide-ui.md): 이용 단계, PC·모바일 배치와 Figma 일러스트 출처
-- [컬렉션 조회 화면](frontend/collection-ui.md): 모든 로그인 회원의 공통 더미 목록·상세, PC 필름·팝업, 모바일 상세와 검증
+- [컬렉션 조회 화면](frontend/collection-ui.md): 본인 저장 목록·상세 API 연동, PC 필름·팝업과 모바일 상세
 - [공개 문서 화면](frontend/docs-ui.md): `/docs/` 공개 범위, 문서 생성·링크·레이아웃과 배포
 - [공개 문서 영역 설계 — 검토안](https://younkim.atlassian.net/wiki/spaces/GOMIN/pages/3670018): 원본 Markdown을 유지하는 `/docs/` 공개 화면 설계
 
 ## 데이터베이스
 
+- [요약 기반 그림일기 MVP](engineering/diary-mvp.md): 직접 이미지 생성, 컬렉션 저장·목록·상세 조회
 - [대화·컬렉션 ERD](engineering/conversation-collection-erd.md): 테이블·관계·제약조건, Supabase SQL과 ID 생성·재시도 관련 질문·답변
 - [Supabase 마이그레이션 관리](engineering/database-migrations.md): SQL 작성·검토, 로컬·PR 검증, 운영 적용과 실패 처리
 
