@@ -19,6 +19,14 @@ Frontend는 `frontend/`의 Next.js 애플리케이션입니다. `frontend/packag
 
 공유 이미지의 절대 URL은 `NEXT_PUBLIC_SITE_URL`을 기준으로 생성한다. 커스텀 도메인을 사용하면 이 값을 실제 공개 출처(예: `https://your-domain.com`)로 설정하고 재빌드한다. 값이 없으면 Vercel의 `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL` 순서로 사용하며 로컬에서는 `http://localhost:3000`으로 폴백한다. 배포 후 페이지의 `og:image`가 공개 HTTPS 주소인지와 이미지 접근이 가능한지 확인한다.
 
+## PR 빌드 검증과 자동 배포
+
+`frontend/vercel.json`의 `git.deploymentEnabled`는 모든 브랜치(`**`)의 Git 자동 배포를 끄고 `main`만 허용한다. PR 작업 브랜치에는 Vercel 프리뷰 배포를 생성하지 않는다. Vercel 프로젝트의 Production Branch는 `main`으로 설정한다. 브랜치 패턴과 중복 규칙의 동작은 [Vercel Git 설정 문서](https://vercel.com/docs/project-configuration/git-configuration#git.deploymentenabled)를 따른다.
+
+`main` 대상 PR을 열거나 갱신하면 `.github/workflows/frontend-build-check.yml`의 `Frontend build check`가 실행된다. 변경 경로에 관계없이 Node.js 24에서 `frontend/`의 `npm ci`와 `npm run build`를 수행한다. 빌드 전 공개 문서 생성도 포함하며, 배포나 운영 Secret 없이 빌드 성공 여부만 확인한다. GitHub Actions에서 수동 실행할 수도 있다.
+
+기존 작업 브랜치에도 이 설정을 반영해야 프리뷰 자동 배포가 중단된다. 병합을 차단하는 필수 검사로 사용하려면 GitHub 브랜치 보호 또는 ruleset에서 `build` 검사를 지정한다. 기존 Vercel 검사가 필수이면 해당 요구 조건도 새 빌드 검사로 교체한다.
+
 ## 공개 문서 빌드
 
 Root Directory는 `frontend`를 사용하며 **Include files outside the root directory in the Build Step**을 활성화한다. 빌드 전 문서 생성 스크립트가 루트 `docs/`와 `README.md`를 읽는다.
@@ -29,7 +37,7 @@ Root Directory는 `frontend`를 사용하며 **Include files outside the root di
 git diff HEAD^ HEAD --quiet -- . ../docs ../README.md
 ```
 
-프론트엔드·문서·루트 README 변경 시 빌드하며 그 외 변경만 있으면 생략한다. 문서 생성·공개 범위와 갱신 방법은 [공개 문서 화면](../frontend/docs-ui.md)을 따른다. 배포 후 `/docs/`와 상세 문서를 비로그인 상태에서 열고 문서 변경 반영과 검색 제외 메타데이터를 확인한다.
+`main` 자동 배포에서는 프론트엔드·문서·루트 README 변경 시 빌드하며 그 외 변경만 있으면 생략한다. PR의 GitHub Actions 빌드 검증에는 이 생략 규칙을 적용하지 않는다. 문서 생성·공개 범위와 갱신 방법은 [공개 문서 화면](../frontend/docs-ui.md)을 따른다. 배포 후 `/docs/`와 상세 문서를 비로그인 상태에서 열고 문서 변경 반영과 검색 제외 메타데이터를 확인한다.
 
 ## 배포 후 확인
 
