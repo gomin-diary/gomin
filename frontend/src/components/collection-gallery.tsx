@@ -10,6 +10,7 @@ import {
   visibleCollectionItems, type CollectionDetail, type CollectionImage,
 } from "@/lib/collection";
 import { createApiCollectionRepository } from "@/lib/collection-api";
+import { formatEncouragement } from "@/lib/diary-text";
 import { filmPerforations } from "@/lib/collection-film";
 import styles from "./collection-gallery.module.css";
 
@@ -59,7 +60,7 @@ function DetailContent({ detail }: { detail: CollectionDetail }) {
     <header className={styles.detailHeading}>
       <time dateTime={detail.date}>{formatDate(detail.date, true)}</time>
       <div className={styles.titleRow}><h2 id="collection-detail-title">{detail.title}</h2><AssetIcon name="title-leaf" /></div>
-      <p>{detail.caption}</p>
+      <p>{formatEncouragement(detail.caption)}</p>
     </header>
     <div className={styles.summaryCards}>
       <section className={`${styles.summaryCard} ${styles.mind}`}>
@@ -195,7 +196,7 @@ function MemberCollection({ memberId }: { memberId: string }) {
     </div>
     {selected && (isMobile
       ? <article className={styles.mobileDetail} aria-label="고민일기 상세">
-        <div className={styles.mobileHero}>{state.detail && <><RecordImage image={state.detail.image} hero /><p className={styles.heroTitle}>{state.detail.title}</p></>}
+        <div className={styles.mobileHero}>{state.detail && <RecordImage image={state.detail.image} hero />}
           <button className={styles.backButton} type="button" aria-label="컬렉션으로 돌아가기" onClick={close} autoFocus>←</button>
         </div>
         <div className={styles.mobileDetailBody}>{detailBody}</div>
